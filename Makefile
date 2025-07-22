@@ -21,7 +21,7 @@ SRCS = ./src/main.c ./src/tiffFunctions.c ./src/utilities.c ./src/inputFunctions
 OBJS = $(SRCS:.c=.o)
 
 # the created executable
-TARGET = my_program
+TARGET = ./build/my_program
 
 all: $(TARGET)
 
