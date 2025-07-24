@@ -85,77 +85,20 @@ int main(int argc, char* argv[]) {
     cl_kernel kernelFFT_1D;
     cl_int err;
     err = initialise_OpenCL(&platform, &device_id, &context, &queue, &queueNonBlocking, &program, &kernelFFT_1D, &kernelMultConj, &kernelMaxCorr);
-    /*
-    // General OpenCL setup
-    cl_platform_id cpPlatform;        // OpenCL platform
-    cl_device_id device_id;           // device ID
-    cl_context context;               // context
-    cl_command_queue queue;           // command queue
-    cl_program program;               // program
-    cl_int err;
-    // Bind to platform
-    err = clGetPlatformIDs(1, &cpPlatform, NULL);
-    if(err!=CL_SUCCESS){printf("ERROR: OpenCL could not bind to platform\n");return 1;}
-    // Get ID for the device
-    err = clGetDeviceIDs(cpPlatform, CL_DEVICE_TYPE_GPU, 1, &device_id, NULL);
-    if(err!=CL_SUCCESS){printf("ERROR: OpenCL could not get device id\n");return 1;}
-    // Create a context
-    context = clCreateContext(0, 1, &device_id, NULL, NULL, &err);
-    if(err!=CL_SUCCESS){printf("ERROR: OpenCL could not create context\n");return 1;}
-    // Create a command queue
-    queue = clCreateCommandQueue(context, device_id, 0, &err);
-    if(err!=CL_SUCCESS){printf("ERROR: OpenCL could not create command queue\n");return 1;}
-
-
-    cl_queue_properties non_blocking_properties[] = {
-        CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
-        0 // Must terminate with 0
-    };
-    cl_command_queue queueNonBlocking = clCreateCommandQueueWithProperties(context, device_id, non_blocking_properties, &err);
-
-    // Create the compute program from the source buffer
-    const char* kernel_sources[] = { kernelSource_complexMaths, kernelSource_FFT_1D, kernelSource_complex_multiply_conjugate_norm, kernelSource_MaxCorr};
-    program = clCreateProgramWithSource(context, 4, kernel_sources, NULL, &err);
-    //free(kernel_sources);
-    if(err!=CL_SUCCESS){printf("ERROR: OpenCL could retrieve source code for kernel\n");return 1;}
-    // Build the program executable
-    err = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
-    if(err != CL_SUCCESS){ // handling errors when compiling the kernel
-        size_t log_size;
-        clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
-        char *build_log = (char *) malloc(log_size + 1); // +1 for null terminator
-        // Get the log
-        clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, log_size, build_log, NULL);
-        build_log[log_size] = '\0'; // Null-terminate
-        fprintf(stderr, "Kernel Build Error:\n%s\n", build_log);
-        free(build_log);
+    if(err!=CL_SUCCESS){
+      return 1;
     }
-    // Create the compute kernel in the program
-    cl_kernel kernelMultConj;
-    kernelMultConj = clCreateKernel(program, "complex_multiply_conjugate_norm", &err);
-    if(err!=CL_SUCCESS){printf("ERROR: OpenCL could not add complex_multiply_conjugate_norm kernel function to program\n");return 1;}
-    cl_kernel kernelMaxCorr;
-    kernelMaxCorr = clCreateKernel(program, "findMaxCorr", &err);
-    if(err!=CL_SUCCESS){printf("ERROR: OpenCL could not add findMaxCorr kernel function to program\n");return 1;}
-    cl_kernel kernelFFT_1D;
-    kernelFFT_1D = clCreateKernel(program, "FFT_1D", &err);
-    if(err!=CL_SUCCESS){printf("ERROR: OpenCL could not add FFT_1D kernel function to program\n");return 1;}
-
-
-    cl_ulong local_mem_size;
-    err = clGetDeviceInfo(device_id, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &local_mem_size, NULL);
-    if(err!=CL_SUCCESS){printf("ERROR: OpenCL could not determine max local mem size\n");return 1;}
-    */
-
-
-
+    
     // initialise buffers
     debug_message("Initialise buffers", DEBUG_LVL, 0, &currentTime);
     cl_mem im1_GPU;
     cl_mem im2_GPU;
 
 
+
+    // determining the max size of data structures to prevent repeated malloc's and free's
     size_t maxTiledInputSize = 0;
+    size_t maxVecSize = 0;
     char temp_file[MAX_FILEPATH_LENGTH];
     snprintf(temp_file, sizeof(temp_file),im1_filepath_template, im1_frame_start);
     uint32_t temp_width, temp_height;
@@ -170,9 +113,19 @@ int main(int argc, char* argv[]) {
         if(bytesNeeded > maxTiledInputSize){
             maxTiledInputSize = bytesNeeded;
         }
+        size_t sizeNeededVec = N_vec_cols*N_vec_rows*sizeof(float);
+        if(sizeNeededVec > maxVecSize){
+            maxVecSize = sizeNeededVec;
+        }
     }
     cl_mem im1_windows_max = clCreateBuffer(context, CL_MEM_READ_WRITE, maxTiledInputSize, NULL, &err);
     cl_mem im2_windows_max = clCreateBuffer(context, CL_MEM_READ_WRITE, maxTiledInputSize, NULL, &err);
+    
+    // allocate space for velocity data here just the once
+    float* U = (float*)malloc(maxVecSize);
+    float* V = (float*)malloc(maxVecSize);
+    cl_mem U_GPU_max = clCreateBuffer(context, CL_MEM_READ_WRITE, maxVecSize, NULL, &err);
+    cl_mem V_GPU_max = clCreateBuffer(context, CL_MEM_READ_WRITE, maxVecSize, NULL, &err);
 
 
     debug_message("Iterating through frame-pairs", DEBUG_LVL, 0, &currentTime);
@@ -238,6 +191,7 @@ int main(int argc, char* argv[]) {
             //----------------------------------------------------------------------------------------------------
             //-------------------------------Initialising PIV variables-------------------------------------------
             //----------------------------------------------------------------------------------------------------
+            
             debug_message("Initialising PIV variables", DEBUG_LVL, 3, &currentTime);
             // determine how many windows will fit across the images
             int windowSize = windowSizes[pass];
@@ -246,14 +200,16 @@ int main(int argc, char* argv[]) {
             int window_shift = (1.0-overlap)*windowSize;
             int N_vec_cols = floor(IMWIDTH/window_shift);
             int N_vec_rows = floor(IMHEIGHT/window_shift);
-            // allocate memory for velocity data
-            float* U = (float*)malloc(sizeof(float)*N_vec_rows*N_vec_cols);
-            float* V = (float*)malloc(sizeof(float)*N_vec_rows*N_vec_cols);
+            cl_buffer_region subRegion; // needed for making subbuffers
             float dt = 1.0;
+            
+            
             // allocate memory on GPU for U and V
             size_t vec_bytes = N_vec_cols*N_vec_rows*sizeof(float);
-            cl_mem U_GPU = clCreateBuffer(context, CL_MEM_WRITE_ONLY, vec_bytes, NULL, &err);
-            cl_mem V_GPU = clCreateBuffer(context, CL_MEM_WRITE_ONLY, vec_bytes, NULL, &err);
+            subRegion.origin = 0 * sizeof(float); // where we start
+            subRegion.size = vec_bytes;   
+            cl_mem U_GPU = clCreateSubBuffer(U_GPU_max, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &subRegion, NULL);
+            cl_mem V_GPU = clCreateSubBuffer(V_GPU_max, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &subRegion, NULL);
             //----------------------------------------------------------------------------------------------------
             //-------------------------------Initialising windows-------------------------------------------
             //----------------------------------------------------------------------------------------------------
@@ -261,9 +217,8 @@ int main(int argc, char* argv[]) {
             cl_mem im1_windows;
             cl_mem im2_windows;
             size_t windowedImageBytes = (N_vec_cols*windowSize)*(N_vec_rows*windowSize) * sizeof(cl_float2);
-            //im1_windows = clCreateBuffer(context, CL_MEM_READ_WRITE, windowedImageBytes, NULL, &err);
-            //im2_windows = clCreateBuffer(context, CL_MEM_READ_WRITE, windowedImageBytes, NULL, &err);
-            cl_buffer_region subRegion;
+
+            
             subRegion.origin = 0 * sizeof(float); // where we start
             subRegion.size = windowedImageBytes;   // Use a region of 128 floats
             im1_windows = clCreateSubBuffer(im1_windows_max, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &subRegion, NULL);
@@ -387,7 +342,7 @@ int main(int argc, char* argv[]) {
             //-----------------------------------Deallocating memory----------------------------------------------
             //----------------------------------------------------------------------------------------------------
             debug_message("Deallocating memory", DEBUG_LVL, 3, &currentTime);
-            free(U);free(V);
+            
             clReleaseMemObject(U_GPU);clReleaseMemObject(V_GPU);
             clReleaseMemObject(im1_windows);clReleaseMemObject(im2_windows);
 
@@ -396,6 +351,10 @@ int main(int argc, char* argv[]) {
         fclose(fp);
 
     }
+    
+    free(U);free(V);
+    clReleaseMemObject(U_GPU_max);clReleaseMemObject(V_GPU_max);
+    
     clReleaseMemObject(im1_windows_max);clReleaseMemObject(im2_windows_max);
     clReleaseMemObject(im1_GPU);clReleaseMemObject(im2_GPU);
     clReleaseKernel(kernelFFT_1D);

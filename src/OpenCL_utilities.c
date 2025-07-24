@@ -124,4 +124,5 @@ cl_int initialise_OpenCL(cl_platform_id *platform, cl_device_id *device_id, cl_c
     if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
     *kernelFFT_1D = clCreateKernel(*program, "FFT_1D", &err);
     if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
+    return CL_SUCCESS;
 }
