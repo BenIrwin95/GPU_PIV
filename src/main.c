@@ -5,6 +5,7 @@
 #include <time.h>
 #include <CL/cl.h>
 // custom headers
+#include "OpenCL_utilities.h"
 #include "tiffFunctions.h" // imports functions for loading and saving tiff images
 #include "utilities.h" // imports miscellaneous functions
 #include "inputFunctions.h" // imports functions for taking inputs from a text file
@@ -73,7 +74,18 @@ int main(int argc, char* argv[]) {
     //-----------------------------------OpenCL initialisation--------------------------------------------
     //----------------------------------------------------------------------------------------------------
     debug_message("Initial OpenCL setup", DEBUG_LVL, 0, &currentTime);
-
+    cl_platform_id platform;        // OpenCL platform
+    cl_device_id device_id;           // device ID
+    cl_context context;               // context
+    cl_command_queue queue;           // command queue
+    cl_command_queue queueNonBlocking;           // command queue
+    cl_program program;               // program
+    cl_kernel kernelMultConj;
+    cl_kernel kernelMaxCorr;
+    cl_kernel kernelFFT_1D;
+    cl_int err;
+    err = initialise_OpenCL(&platform, &device_id, &context, &queue, &queueNonBlocking, &program, &kernelFFT_1D, &kernelMultConj, &kernelMaxCorr);
+    /*
     // General OpenCL setup
     cl_platform_id cpPlatform;        // OpenCL platform
     cl_device_id device_id;           // device ID
@@ -133,6 +145,7 @@ int main(int argc, char* argv[]) {
     cl_ulong local_mem_size;
     err = clGetDeviceInfo(device_id, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &local_mem_size, NULL);
     if(err!=CL_SUCCESS){printf("ERROR: OpenCL could not determine max local mem size\n");return 1;}
+    */
 
 
 
