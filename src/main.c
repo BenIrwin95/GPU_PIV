@@ -94,14 +94,20 @@ int main(int argc, char* argv[]) {
     
     // initialise buffers
     debug_message("Initialise buffers", DEBUG_LVL, 0, &currentTime);
-    cl_mem im1_GPU;
-    cl_mem im2_GPU;
 
+    // initialise pointers to hold pointers to each of the arrays generated each pass
+    // need so we can interpolate U and V between passes
+    float** X_passes = (float**)malloc(N_pass * sizeof(float*));
+    float** Y_passes = (float**)malloc(N_pass * sizeof(float*));
+    float** U_passes = (float**)malloc(N_pass * sizeof(float*));
+    float** V_passes = (float**)malloc(N_pass * sizeof(float*));
+    cl_int2* vecDim_passes = (cl_int2*)malloc(N_pass * sizeof(cl_int2)); // the dimensions of the arrays in each pass
 
 
     // determining the max size of data structures to prevent repeated malloc's and free's
     size_t maxTiledInputSize = 0;
-    size_t maxVecSize = 0;
+    size_t maxVecSize=0;
+    // retrieve size of 1 image
     char temp_file[MAX_FILEPATH_LENGTH];
     snprintf(temp_file, sizeof(temp_file),im1_filepath_template, im1_frame_start);
     uint32_t temp_width, temp_height;
@@ -110,23 +116,38 @@ int main(int argc, char* argv[]) {
         int windowSize = windowSizes[i];
         double overlap = 0.5;
         int window_shift = (1.0-overlap)*windowSize;
-        int N_vec_cols = floor((temp_width-windowSize)/window_shift);
-        int N_vec_rows = floor((temp_height-windowSize)/window_shift);
-        size_t bytesNeeded = (N_vec_cols*windowSize)*(N_vec_rows*windowSize) * sizeof(cl_float2);
+        cl_int2 vecDim;
+        vecDim.x = floor((temp_width-windowSize)/window_shift);
+        vecDim.y = floor((temp_height-windowSize)/window_shift);
+
+        size_t bytesNeeded = (vecDim.x*windowSize)*(vecDim.y*windowSize) * sizeof(cl_float2);
         if(bytesNeeded > maxTiledInputSize){
             maxTiledInputSize = bytesNeeded;
         }
-        size_t sizeNeededVec = N_vec_cols*N_vec_rows*sizeof(float);
+        size_t sizeNeededVec = vecDim.x*vecDim.y*sizeof(float);
         if(sizeNeededVec > maxVecSize){
             maxVecSize = sizeNeededVec;
         }
+
+        // allocate space for X,Y,U,V
+        X_passes[i] = (float*)malloc(sizeNeededVec);
+        Y_passes[i] = (float*)malloc(sizeNeededVec);
+        U_passes[i] = (float*)malloc(sizeNeededVec);
+        V_passes[i] = (float*)malloc(sizeNeededVec);
+        vecDim_passes[i]=vecDim;
+
     }
-    cl_mem im1_windows_max = clCreateBuffer(context, CL_MEM_READ_WRITE, maxTiledInputSize, NULL, &err);
-    cl_mem im2_windows_max = clCreateBuffer(context, CL_MEM_READ_WRITE, maxTiledInputSize, NULL, &err);
+
+    // image buffers
+    cl_int2 imageDim;
+    imageDim.x=temp_width;imageDim.y=temp_height;
+    size_t imageBytes = imageDim.x*imageDim.y*sizeof(cl_float2);
+    cl_mem im1_GPU = clCreateBuffer(context, CL_MEM_READ_ONLY, imageBytes, NULL, &err); // we assume our image size will be constant and thus assign a buffer in advance for frames
+    cl_mem im2_GPU = clCreateBuffer(context, CL_MEM_READ_ONLY, imageBytes, NULL, &err);
+    cl_mem im1_windows_max = clCreateBuffer(context, CL_MEM_READ_WRITE, maxTiledInputSize, NULL, &err); // the buffer that will hold all the windowed parts of the image during a pass
+    cl_mem im2_windows_max = clCreateBuffer(context, CL_MEM_READ_WRITE, maxTiledInputSize, NULL, &err); // allocate space based on the max expected size, during each pass we then create a subbuffer of it
     
     // allocate space for velocity data here just the once
-    float* U = (float*)malloc(maxVecSize);
-    float* V = (float*)malloc(maxVecSize);
     cl_mem U_GPU_max = clCreateBuffer(context, CL_MEM_READ_WRITE, maxVecSize, NULL, &err);
     cl_mem V_GPU_max = clCreateBuffer(context, CL_MEM_READ_WRITE, maxVecSize, NULL, &err);
 
@@ -155,16 +176,9 @@ int main(int argc, char* argv[]) {
         cl_float2* im1 = tiff2complex(im1_raw ,IMWIDTH, IMHEIGHT);
         cl_float2* im2 = tiff2complex(im2_raw ,IMWIDTH, IMHEIGHT);
         free(im1_raw);free(im2_raw);
-        cl_int2 imageDim;
-        imageDim.x=IMWIDTH;imageDim.y=IMHEIGHT;
+
 
         // load the images to GPU
-        size_t imageBytes = imageDim.x*imageDim.y*sizeof(cl_float2);
-        if(frame==0){
-            // no need to repeat this
-            im1_GPU = clCreateBuffer(context, CL_MEM_READ_ONLY, imageBytes, NULL, &err);
-            im2_GPU = clCreateBuffer(context, CL_MEM_READ_ONLY, imageBytes, NULL, &err);
-        }
         err = clEnqueueWriteBuffer( queue, im1_GPU, CL_TRUE, 0, imageBytes, im1, 0, NULL, NULL );
         err = clEnqueueWriteBuffer( queue, im2_GPU, CL_TRUE, 0, imageBytes, im2, 0, NULL, NULL );
 
@@ -202,12 +216,14 @@ int main(int argc, char* argv[]) {
             int windowSize = windowSizes[pass];
             double overlap = 0.5;
             int window_shift = (1.0-overlap)*windowSize;
-            cl_int2 vecDim;
-            vecDim.x = floor((imageDim.x-windowSize)/window_shift);
-            vecDim.y = floor((imageDim.y-windowSize)/window_shift);
             cl_buffer_region subRegion; // needed for making subbuffers
             float dt = 1.0;
             
+            float* X = X_passes[pass];
+            float* Y = Y_passes[pass];
+            float* U = U_passes[pass];
+            float* V = V_passes[pass];
+            cl_int2 vecDim = vecDim_passes[pass];
             
             // allocate memory on GPU for U and V
             size_t vec_bytes = vecDim.x*vecDim.y*sizeof(float);
@@ -221,8 +237,6 @@ int main(int argc, char* argv[]) {
             //float zero_float_pattern = 0.0f;
             float zero_float_pattern = 0.0f;
             size_t pattern_size = sizeof(float);
-
-            // Enqueue the fill buffer command
             err = clEnqueueFillBuffer(queue, U_GPU, &zero_float_pattern, pattern_size, 0, vec_bytes, 0, NULL, NULL);
             err = clEnqueueFillBuffer(queue, V_GPU, &zero_float_pattern, pattern_size, 0, vec_bytes, 0, NULL, NULL);
 
@@ -240,67 +254,12 @@ int main(int argc, char* argv[]) {
             im1_windows = clCreateSubBuffer(im1_windows_max, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &subRegion, NULL);
             im2_windows = clCreateSubBuffer(im2_windows_max, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &subRegion, NULL);
 
-            // The row pitches in bytes
-            const size_t src_row_pitch = imageDim.x * sizeof(cl_float2);
-            const size_t src_slice_pitch = imageBytes; // byte size of 2D slice (clEnqueueCopyBufferRect is also meant for 3D)
-            const size_t dst_row_pitch = (vecDim.x*windowSize) * sizeof(cl_float2);
-            const size_t dst_slice_pitch = windowedImageBytes;
-            // Destination origin (where to start in the destination buffer)
-            // The offset in bytes is computed as dst_origin[2] × dst_slice_pitch + dst_origin[1] × dst_row_pitch + dst_origin[0].
+
             debug_message("Copying windows to tiles", DEBUG_LVL, 4, &currentTime);
-            // The dimensions of the region to copy (width, height, depth) --> (width in bytes, height in rows, depth in slices)
-            const size_t region[3] = {windowSize*sizeof(cl_float2), windowSize, 1};
-
-
             uniformly_tile_data(im1_GPU, imageDim, windowSize, window_shift, vecDim, im1_windows, kernel_uniformTiling, queue);
             offset_tile_data(im2_GPU, imageDim, windowSize, window_shift, U_GPU, V_GPU, vecDim, im2_windows, kernel_offsetTiling, queue);
-            /*
-            for(int i=0;i<vecDim.y;i++){
-                for(int j=0;j<vecDim.x;j++){
-                    size_t src_origin[3];
-                    size_t dst_origin[3];
-                    // im1
+            err = clFinish(queue);
 
-                    // Source origin (where to start in the source buffer)
-                    // The offset in bytes is computed as src_origin[2] × src_slice_pitch + src_origin[1] × src_row_pitch + src_origin[0].
-                    //const size_t src_origin[3] = { window_shift*j* sizeof(cl_float2), window_shift * i, 0};
-                    src_origin[0] = window_shift*j* sizeof(cl_float2);
-                    src_origin[1] = window_shift * i;
-                    src_origin[2] = 0.0;
-                    dst_origin[0] = windowSize*j* sizeof(cl_float2);
-                    dst_origin[1] = windowSize * i;
-                    dst_origin[2] = 0.0;
-                    // --- Enqueue the GPU-to-GPU Copy ---
-                    err = clEnqueueCopyBufferRect(queueNonBlocking,im1_GPU,im1_windows,
-                                                  src_origin,dst_origin,
-                                                  region,
-                                                  src_row_pitch,src_slice_pitch,
-                                                  dst_row_pitch,dst_slice_pitch,
-                                                  0, NULL, NULL
-                    );
-                    // im2
-                    // Source origin (where to start in the source buffer)
-                    // The offset in bytes is computed as src_origin[2] × src_slice_pitch + src_origin[1] × src_row_pitch + src_origin[0].
-                    src_origin[0] = window_shift*j* sizeof(cl_float2);
-                    src_origin[1] = window_shift * i;
-                    src_origin[2] = 0.0;
-                    dst_origin[0] = windowSize*j* sizeof(cl_float2);
-                    dst_origin[1] = windowSize * i;
-                    dst_origin[2] = 0.0;
-                    // --- Enqueue the GPU-to-GPU Copy ---
-                    err = clEnqueueCopyBufferRect(queueNonBlocking,im2_GPU,im2_windows,
-                                                  src_origin,dst_origin,
-                                                  region,
-                                                  src_row_pitch,src_slice_pitch,
-                                                  dst_row_pitch,dst_slice_pitch,
-                                                  0, NULL, NULL
-                    );
-                }
-            }
-            // Wait for calculations to be finished.
-            err = clFinish(queueNonBlocking);
-            */
-            
             
             // find correlations
             debug_message("Calculating correlation", DEBUG_LVL, 3, &currentTime);
@@ -371,8 +330,18 @@ int main(int argc, char* argv[]) {
 
     }
     
-    free(U);free(V);
+
+    debug_message("Cleaning up", DEBUG_LVL, 3, &currentTime);
     clReleaseMemObject(U_GPU_max);clReleaseMemObject(V_GPU_max);
+
+    for(int i=0;i<N_pass;i++){
+        free(X_passes[i]);
+        free(Y_passes[i]);
+        free(U_passes[i]);
+        free(V_passes[i]);
+    }
+    free(X_passes);free(Y_passes);free(U_passes);free(V_passes);free(vecDim_passes);
+
     
     clReleaseMemObject(im1_windows_max);clReleaseMemObject(im2_windows_max);
     clReleaseMemObject(im1_GPU);clReleaseMemObject(im2_GPU);
