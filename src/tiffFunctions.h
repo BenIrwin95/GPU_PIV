@@ -1,3 +1,5 @@
+#ifndef TIFF_FUNCTIONS_H
+#define TIFF_FUNCTIONS_H
 #include <stdint.h>   // Required for uint8_t, uint32_t, uint16_t
 #include <tiffio.h>   // Required for libtiff functions
 
@@ -17,3 +19,4 @@ cl_float2* tiff2complex(uint8_t* input ,uint32_t width, uint32_t height);
 
 
 int get_tiff_dimensions_single_channel(const char *filepath, uint32_t *width, uint32_t *height);
+#endif

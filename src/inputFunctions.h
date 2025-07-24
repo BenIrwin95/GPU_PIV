@@ -1,4 +1,5 @@
-
+#ifndef INPUT_FUNCTIONS_H
+#define INPUT_FUNCTIONS_H
 // function to remove newline characters from a string
 void remove_newline(char *str);
 
@@ -20,3 +21,4 @@ int* extract_integer_list_from_char(const char *str, int expected_count, int* st
 // extract a known number of integers from an input file based on a keyword the line starts with
 // returns NULL if the incorrect number of integers is found
 int* find_int_list_after_keyword(const char* filename, const char* keyword, const int N, int* status);
+#endif
