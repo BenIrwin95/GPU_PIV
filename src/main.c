@@ -215,6 +215,17 @@ int main(int argc, char* argv[]) {
             subRegion.size = vec_bytes;   
             cl_mem U_GPU = clCreateSubBuffer(U_GPU_max, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &subRegion, NULL);
             cl_mem V_GPU = clCreateSubBuffer(V_GPU_max, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &subRegion, NULL);
+
+
+            // fill with zeros
+            //float zero_float_pattern = 0.0f;
+            float zero_float_pattern = 1.0f;
+            size_t pattern_size = sizeof(float);
+
+            // Enqueue the fill buffer command
+            err = clEnqueueFillBuffer(queue, U_GPU, &zero_float_pattern, pattern_size, 0, vec_bytes, 0, NULL, NULL);
+            err = clEnqueueFillBuffer(queue, V_GPU, &zero_float_pattern, pattern_size, 0, vec_bytes, 0, NULL, NULL);
+
             //----------------------------------------------------------------------------------------------------
             //-------------------------------Initialising windows-------------------------------------------
             //----------------------------------------------------------------------------------------------------

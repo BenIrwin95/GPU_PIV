@@ -96,8 +96,8 @@ const char* kernelSource_MaxCorr = R"(
         if(best_j > windowSize/2){
             best_j = best_j - windowSize;
         }
-        U[gid[1]*outputDim.x + gid[0]] = -best_j;
-        V[gid[1]*outputDim.x + gid[0]] = -best_i;
+        U[gid[1]*outputDim.x + gid[0]] += -best_j;
+        V[gid[1]*outputDim.x + gid[0]] += -best_i;
     }
     
     
