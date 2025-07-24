@@ -9,7 +9,7 @@
 #include "tiffFunctions.h" // imports functions for loading and saving tiff images
 #include "utilities.h" // imports miscellaneous functions
 #include "inputFunctions.h" // imports functions for taking inputs from a text file
-//#include "FFT_functions.h"
+#include "determineCorrelation.h"
 #include "libGPU_FFT.h"
 #include "mainKernel.h"
 
