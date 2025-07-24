@@ -11,6 +11,7 @@
 #include "inputFunctions.h" // imports functions for taking inputs from a text file
 #include "determineCorrelation.h" // applies the GPU_FFT library to calcualte correlation
 #include "dataArrangement.h" // for arranging the data in a convenient arrangement for FFT
+#include "gridFunctions.h" // for creating X and Y and interpolating between grids of different sizes
 #include "libGPU_FFT.h"
 
 
@@ -135,6 +136,9 @@ int main(int argc, char* argv[]) {
         U_passes[i] = (float*)malloc(sizeNeededVec);
         V_passes[i] = (float*)malloc(sizeNeededVec);
         vecDim_passes[i]=vecDim;
+
+        // populate X and Y
+        populateGrid(X_passes[i], Y_passes[i], vecDim, windowSize, window_shift);
 
     }
 
@@ -309,7 +313,7 @@ int main(int argc, char* argv[]) {
             fprintf(fp, "image_x,image_y,U,V\n");
             for(int i=0;i<vecDim.y;i++){
                 for(int j=0;j<vecDim.x;j++){
-                    fprintf(fp,"%d,%d,%.12f,%.12f\n",j*window_shift +1,i*window_shift +1,U[i*vecDim.x + j],V[i*vecDim.x + j]);
+                    fprintf(fp,"%.2f,%.2f,%.12f,%.12f\n",X[i*vecDim.x + j],Y[i*vecDim.x + j],U[i*vecDim.x + j],V[i*vecDim.x + j]);
                 }
             }
             fprintf(fp, "\n\n\n\n\n");
