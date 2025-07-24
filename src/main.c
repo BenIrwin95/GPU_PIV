@@ -238,6 +238,10 @@ int main(int argc, char* argv[]) {
             debug_message("Copying windows to tiles", DEBUG_LVL, 4, &currentTime);
             // The dimensions of the region to copy (width, height, depth) --> (width in bytes, height in rows, depth in slices)
             const size_t region[3] = {windowSize*sizeof(cl_float2), windowSize, 1};
+
+
+            uniformly_tile_data(im1_GPU, imageDim, windowSize, window_shift, vecDim, im1_windows, kernel_uniformTiling, queue);
+
             for(int i=0;i<vecDim.y;i++){
                 for(int j=0;j<vecDim.x;j++){
                     size_t src_origin[3];
@@ -247,7 +251,7 @@ int main(int argc, char* argv[]) {
                     // Source origin (where to start in the source buffer)
                     // The offset in bytes is computed as src_origin[2] × src_slice_pitch + src_origin[1] × src_row_pitch + src_origin[0].
                     //const size_t src_origin[3] = { window_shift*j* sizeof(cl_float2), window_shift * i, 0};
-                    src_origin[0] = window_shift*j* sizeof(cl_float2);
+                    /*src_origin[0] = window_shift*j* sizeof(cl_float2);
                     src_origin[1] = window_shift * i;
                     src_origin[2] = 0.0;
                     dst_origin[0] = windowSize*j* sizeof(cl_float2);
@@ -260,7 +264,7 @@ int main(int argc, char* argv[]) {
                                                   src_row_pitch,src_slice_pitch,
                                                   dst_row_pitch,dst_slice_pitch,
                                                   0, NULL, NULL
-                    );
+                    );*/
                     // im2
                     // Source origin (where to start in the source buffer)
                     // The offset in bytes is computed as src_origin[2] × src_slice_pitch + src_origin[1] × src_row_pitch + src_origin[0].

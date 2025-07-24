@@ -3,7 +3,7 @@
 
 const char* kernelSource_uniformTiling=R"KERN_END(
 
-__kernel void uniform_tiling(__global float2* input, cl_int2 inputDim, int N, cl_int2 strideDim,__global float2* output, cl_int2 outputDim){
+__kernel void uniform_tiling(__global float2* input, int2 inputDim, int N, int2 strideDim,__global float2* output, int2 outputDim){
 
 int gid[2] = {get_group_id(0),get_group_id(1)};
 int lid[2] = {get_local_id(0),get_local_id(1)};

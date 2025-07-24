@@ -74,7 +74,7 @@ const char* getOpenCLErrorString(cl_int err) {
     }
 }
 
-#define ERROR_MSG_OPENCL(err) fprintf(stderr,"ERROR: %s - %s:%d:%s:", getOpenCLErrorString(err), __FILE__, __LINE__, __func__)
+#define ERROR_MSG_OPENCL(err) fprintf(stderr,"ERROR: %s - %s:%d:%s:\n", getOpenCLErrorString(err), __FILE__, __LINE__, __func__)
 
 
 
@@ -103,7 +103,7 @@ cl_int initialise_OpenCL(cl_platform_id *platform, cl_device_id *device_id, cl_c
 
     // Create the compute program from the source buffer
     const char* kernel_sources[] = { kernelSource_complexMaths, kernelSource_FFT_1D, kernelSource_complex_multiply_conjugate_norm, kernelSource_MaxCorr, kernelSource_uniformTiling};
-    *program = clCreateProgramWithSource(*context, 4, kernel_sources, NULL, &err);
+    *program = clCreateProgramWithSource(*context, 5, kernel_sources, NULL, &err);
     //free(kernel_sources);
     if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
     // Build the program executable
