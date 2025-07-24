@@ -9,7 +9,8 @@
 #include "tiffFunctions.h" // imports functions for loading and saving tiff images
 #include "utilities.h" // imports miscellaneous functions
 #include "inputFunctions.h" // imports functions for taking inputs from a text file
-#include "determineCorrelation.h"
+#include "determineCorrelation.h" // applies the GPU_FFT library to calcualte correlation
+#include "dataArrangement.h" // for arranging the data in a convenient arrangement for FFT
 #include "libGPU_FFT.h"
 
 
@@ -83,8 +84,9 @@ int main(int argc, char* argv[]) {
     cl_kernel kernelMultConj;
     cl_kernel kernelMaxCorr;
     cl_kernel kernelFFT_1D;
+    cl_kernel kernel_uniformTiling;
     cl_int err;
-    err = initialise_OpenCL(&platform, &device_id, &context, &queue, &queueNonBlocking, &program, &kernelFFT_1D, &kernelMultConj, &kernelMaxCorr);
+    err = initialise_OpenCL(&platform, &device_id, &context, &queue, &queueNonBlocking, &program, &kernelFFT_1D, &kernelMultConj, &kernelMaxCorr, &kernel_uniformTiling);
     if(err!=CL_SUCCESS){
       return 1;
     }
@@ -107,8 +109,8 @@ int main(int argc, char* argv[]) {
         int windowSize = windowSizes[i];
         double overlap = 0.5;
         int window_shift = (1.0-overlap)*windowSize;
-        int N_vec_cols = floor(temp_width/window_shift);
-        int N_vec_rows = floor(temp_height/window_shift);
+        int N_vec_cols = floor((temp_width-windowSize)/window_shift);
+        int N_vec_rows = floor((temp_height-windowSize)/window_shift);
         size_t bytesNeeded = (N_vec_cols*windowSize)*(N_vec_rows*windowSize) * sizeof(cl_float2);
         if(bytesNeeded > maxTiledInputSize){
             maxTiledInputSize = bytesNeeded;
@@ -152,9 +154,11 @@ int main(int argc, char* argv[]) {
         cl_float2* im1 = tiff2complex(im1_raw ,IMWIDTH, IMHEIGHT);
         cl_float2* im2 = tiff2complex(im2_raw ,IMWIDTH, IMHEIGHT);
         free(im1_raw);free(im2_raw);
+        cl_int2 imageDim;
+        imageDim.x=IMWIDTH;imageDim.y=IMHEIGHT;
 
         // load the images to GPU
-        size_t imageBytes = IMWIDTH*IMHEIGHT*sizeof(cl_float2);
+        size_t imageBytes = imageDim.x*imageDim.y*sizeof(cl_float2);
         if(frame==0){
             // no need to repeat this
             im1_GPU = clCreateBuffer(context, CL_MEM_READ_ONLY, imageBytes, NULL, &err);
@@ -195,17 +199,17 @@ int main(int argc, char* argv[]) {
             debug_message("Initialising PIV variables", DEBUG_LVL, 3, &currentTime);
             // determine how many windows will fit across the images
             int windowSize = windowSizes[pass];
-            //const int windowSize2 = pow((float)windowSize, 2.0);
             double overlap = 0.5;
             int window_shift = (1.0-overlap)*windowSize;
-            int N_vec_cols = floor(IMWIDTH/window_shift);
-            int N_vec_rows = floor(IMHEIGHT/window_shift);
+            cl_int2 vecDim;
+            vecDim.x = floor((imageDim.x-windowSize)/window_shift);
+            vecDim.y = floor((imageDim.y-windowSize)/window_shift);
             cl_buffer_region subRegion; // needed for making subbuffers
             float dt = 1.0;
             
             
             // allocate memory on GPU for U and V
-            size_t vec_bytes = N_vec_cols*N_vec_rows*sizeof(float);
+            size_t vec_bytes = vecDim.x*vecDim.y*sizeof(float);
             subRegion.origin = 0 * sizeof(float); // where we start
             subRegion.size = vec_bytes;   
             cl_mem U_GPU = clCreateSubBuffer(U_GPU_max, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &subRegion, NULL);
@@ -216,7 +220,7 @@ int main(int argc, char* argv[]) {
             debug_message("Initialising windows", DEBUG_LVL, 3, &currentTime);
             cl_mem im1_windows;
             cl_mem im2_windows;
-            size_t windowedImageBytes = (N_vec_cols*windowSize)*(N_vec_rows*windowSize) * sizeof(cl_float2);
+            size_t windowedImageBytes = (vecDim.x*windowSize)*(vecDim.y*windowSize) * sizeof(cl_float2);
 
             
             subRegion.origin = 0 * sizeof(float); // where we start
@@ -225,17 +229,17 @@ int main(int argc, char* argv[]) {
             im2_windows = clCreateSubBuffer(im2_windows_max, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &subRegion, NULL);
 
             // The row pitches in bytes
-            const size_t src_row_pitch = IMWIDTH * sizeof(cl_float2);
+            const size_t src_row_pitch = imageDim.x * sizeof(cl_float2);
             const size_t src_slice_pitch = imageBytes; // byte size of 2D slice (clEnqueueCopyBufferRect is also meant for 3D)
-            const size_t dst_row_pitch = (N_vec_cols*windowSize) * sizeof(cl_float2);
+            const size_t dst_row_pitch = (vecDim.x*windowSize) * sizeof(cl_float2);
             const size_t dst_slice_pitch = windowedImageBytes;
             // Destination origin (where to start in the destination buffer)
             // The offset in bytes is computed as dst_origin[2] × dst_slice_pitch + dst_origin[1] × dst_row_pitch + dst_origin[0].
             debug_message("Copying windows to tiles", DEBUG_LVL, 4, &currentTime);
             // The dimensions of the region to copy (width, height, depth) --> (width in bytes, height in rows, depth in slices)
             const size_t region[3] = {windowSize*sizeof(cl_float2), windowSize, 1};
-            for(int i=0;i<N_vec_rows;i++){
-                for(int j=0;j<N_vec_cols;j++){
+            for(int i=0;i<vecDim.y;i++){
+                for(int j=0;j<vecDim.x;j++){
                     size_t src_origin[3];
                     size_t dst_origin[3];
                     // im1
@@ -283,8 +287,8 @@ int main(int argc, char* argv[]) {
             // find correlations
             debug_message("Calculating correlation", DEBUG_LVL, 3, &currentTime);
             cl_int2 inputDim;
-            inputDim.x = N_vec_cols*windowSize;
-            inputDim.y = N_vec_rows*windowSize;
+            inputDim.x = vecDim.x*windowSize;
+            inputDim.y = vecDim.y*windowSize;
             FFT_corr_tiled (im1_windows,im2_windows, inputDim, windowSize, kernelFFT_1D, kernelMultConj, queue);
 
             
@@ -292,18 +296,15 @@ int main(int argc, char* argv[]) {
 
             debug_message("Finding correlation peak", DEBUG_LVL, 3, &currentTime);
             size_t localSize[2] = {windowSize,1};
-            size_t numGroups[2] = {N_vec_cols, N_vec_rows};
+            size_t numGroups[2] = {vecDim.x, vecDim.y};
             size_t globalSize[2] = {numGroups[0]*localSize[0],numGroups[1]*localSize[1]};
-            cl_int2 outputDim;
-            outputDim.x = N_vec_cols;
-            outputDim.y = N_vec_rows;
             int idx=0;
             err = clSetKernelArg(kernelMaxCorr, idx, sizeof(cl_mem), &im1_windows); idx++;
             err = clSetKernelArg(kernelMaxCorr, idx, sizeof(cl_int2), &inputDim); idx++;
             err = clSetKernelArg(kernelMaxCorr, idx, sizeof(int), &windowSize); idx++;
             err = clSetKernelArg(kernelMaxCorr, idx, sizeof(cl_mem), &U_GPU); idx++;
             err = clSetKernelArg(kernelMaxCorr, idx, sizeof(cl_mem), &V_GPU); idx++;
-            err = clSetKernelArg(kernelMaxCorr, idx, sizeof(cl_int2), &outputDim); idx++;
+            err = clSetKernelArg(kernelMaxCorr, idx, sizeof(cl_int2), &vecDim); idx++;
             err=clEnqueueNDRangeKernel(queue, kernelMaxCorr, 2, NULL, globalSize, localSize,0, NULL, NULL);
             err = clFinish(queue);
 
@@ -320,18 +321,18 @@ int main(int argc, char* argv[]) {
             clEnqueueReadBuffer(queue, U_GPU, CL_TRUE, 0, vec_bytes, U, 0, NULL, NULL );
             clEnqueueReadBuffer(queue, V_GPU, CL_TRUE, 0, vec_bytes, V, 0, NULL, NULL );
             // convert the pixel displacements to velocity
-            multiply_float_array_by_scalar(U, N_vec_rows*N_vec_cols, 1/dt);
-            multiply_float_array_by_scalar(V, N_vec_rows*N_vec_cols, 1/dt);
+            multiply_float_array_by_scalar(U, vecDim.x*vecDim.y, 1/dt);
+            multiply_float_array_by_scalar(V, vecDim.x*vecDim.y, 1/dt);
 
 
             fprintf(fp, "Pass %d of %d\n", pass+1, N_pass);
             fprintf(fp, "Window size %d\n", windowSizes[pass]);
-            fprintf(fp, "Rows %d\n", N_vec_rows);
-            fprintf(fp, "Cols %d\n", N_vec_cols);
+            fprintf(fp, "Rows %d\n", vecDim.y);
+            fprintf(fp, "Cols %d\n", vecDim.x);
             fprintf(fp, "image_x,image_y,U,V\n");
-            for(int i=0;i<N_vec_rows;i++){
-                for(int j=0;j<N_vec_cols;j++){
-                    fprintf(fp,"%d,%d,%.12f,%.12f\n",j*window_shift +1,i*window_shift +1,U[i*N_vec_cols + j],V[i*N_vec_cols + j]);
+            for(int i=0;i<vecDim.y;i++){
+                for(int j=0;j<vecDim.x;j++){
+                    fprintf(fp,"%d,%d,%.12f,%.12f\n",j*window_shift +1,i*window_shift +1,U[i*vecDim.x + j],V[i*vecDim.x + j]);
                 }
             }
             fprintf(fp, "\n\n\n\n\n");
