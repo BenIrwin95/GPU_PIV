@@ -85,8 +85,9 @@ int main(int argc, char* argv[]) {
     cl_kernel kernelMaxCorr;
     cl_kernel kernelFFT_1D;
     cl_kernel kernel_uniformTiling;
+    cl_kernel kernel_offsetTiling;
     cl_int err;
-    err = initialise_OpenCL(&platform, &device_id, &context, &queue, &queueNonBlocking, &program, &kernelFFT_1D, &kernelMultConj, &kernelMaxCorr, &kernel_uniformTiling);
+    err = initialise_OpenCL(&platform, &device_id, &context, &queue, &queueNonBlocking, &program, &kernelFFT_1D, &kernelMultConj, &kernelMaxCorr, &kernel_uniformTiling, &kernel_offsetTiling);
     if(err!=CL_SUCCESS){
       return 1;
     }
@@ -241,7 +242,8 @@ int main(int argc, char* argv[]) {
 
 
             uniformly_tile_data(im1_GPU, imageDim, windowSize, window_shift, vecDim, im1_windows, kernel_uniformTiling, queue);
-
+            offset_tile_data(im2_GPU, imageDim, windowSize, window_shift, U_GPU, V_GPU, vecDim, im2_windows, kernel_offsetTiling, queue);
+            /*
             for(int i=0;i<vecDim.y;i++){
                 for(int j=0;j<vecDim.x;j++){
                     size_t src_origin[3];
@@ -251,7 +253,7 @@ int main(int argc, char* argv[]) {
                     // Source origin (where to start in the source buffer)
                     // The offset in bytes is computed as src_origin[2] × src_slice_pitch + src_origin[1] × src_row_pitch + src_origin[0].
                     //const size_t src_origin[3] = { window_shift*j* sizeof(cl_float2), window_shift * i, 0};
-                    /*src_origin[0] = window_shift*j* sizeof(cl_float2);
+                    src_origin[0] = window_shift*j* sizeof(cl_float2);
                     src_origin[1] = window_shift * i;
                     src_origin[2] = 0.0;
                     dst_origin[0] = windowSize*j* sizeof(cl_float2);
@@ -264,7 +266,7 @@ int main(int argc, char* argv[]) {
                                                   src_row_pitch,src_slice_pitch,
                                                   dst_row_pitch,dst_slice_pitch,
                                                   0, NULL, NULL
-                    );*/
+                    );
                     // im2
                     // Source origin (where to start in the source buffer)
                     // The offset in bytes is computed as src_origin[2] × src_slice_pitch + src_origin[1] × src_row_pitch + src_origin[0].
@@ -284,8 +286,9 @@ int main(int argc, char* argv[]) {
                     );
                 }
             }
-            /* Wait for calculations to be finished. */
+            // Wait for calculations to be finished.
             err = clFinish(queueNonBlocking);
+            */
             
             
             // find correlations

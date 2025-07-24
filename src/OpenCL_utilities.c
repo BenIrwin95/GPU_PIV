@@ -4,7 +4,7 @@
 #include "libGPU_FFT.h"
 #include "determineCorrelation.h"
 #include "dataArrangement.h"
-
+#include "OpenCL_utilities.h"
 
 
 const char* getOpenCLErrorString(cl_int err) {
@@ -74,12 +74,11 @@ const char* getOpenCLErrorString(cl_int err) {
     }
 }
 
-#define ERROR_MSG_OPENCL(err) fprintf(stderr,"ERROR: %s - %s:%d:%s:\n", getOpenCLErrorString(err), __FILE__, __LINE__, __func__)
 
 
 
 cl_int initialise_OpenCL(cl_platform_id *platform, cl_device_id *device_id, cl_context *context, cl_command_queue *queue, cl_command_queue *queueNonBlocking, cl_program *program, 
-                          cl_kernel *kernelFFT_1D, cl_kernel *kernelMultConj, cl_kernel *kernelMaxCorr, cl_kernel *kernel_uniformTiling){
+                          cl_kernel *kernelFFT_1D, cl_kernel *kernelMultConj, cl_kernel *kernelMaxCorr, cl_kernel *kernel_uniformTiling, cl_kernel *kernel_offsetTiling){
     cl_int err;
     // Bind to platform
     err = clGetPlatformIDs(1, platform, NULL);
@@ -126,6 +125,8 @@ cl_int initialise_OpenCL(cl_platform_id *platform, cl_device_id *device_id, cl_c
     *kernelFFT_1D = clCreateKernel(*program, "FFT_1D", &err);
     if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
     *kernel_uniformTiling = clCreateKernel(*program, "uniform_tiling", &err);
+    if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
+    *kernel_offsetTiling = clCreateKernel(*program, "offset_tiling", &err);
     if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
     return CL_SUCCESS;
 }
