@@ -49,8 +49,16 @@ __kernel void offset_tiling(__global float2* input, int2 inputDim,
             U_local -= idx.x+U_local+N;
             U[gid[1]*vecDim.x + gid[0]] = U_local;
         }
+        if(idx.x + U_local <0){
+            U_local -= idx.x+U_local;
+            U[gid[1]*vecDim.x + gid[0]] = U_local;
+        }
         if(idx.y + V_local + N>inputDim.y){
-            V_local -= idx.y+U_local+N;
+            V_local -= idx.y+V_local+N;
+            V[gid[1]*vecDim.x + gid[0]] = V_local;
+        }
+        if(idx.y + V_local <0){
+            V_local -= idx.y+V_local;
             V[gid[1]*vecDim.x + gid[0]] = V_local;
         }
     }

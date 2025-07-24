@@ -34,9 +34,19 @@ for i=1:length(x_part1)
 end
 
 I2 = zeros(size(I1));
-shiftVal_y = 5;
 shiftVal_x = 5;
-I2(1+shiftVal_y:end,1+shiftVal_x:end) = I1(1:end-shiftVal_y,1:end-shiftVal_x);
+shiftVal_y = 5;
+for i=1:size(I2,1)
+  for j=1:size(I2,2)
+    idx_i = i+shiftVal_y;
+    idx_j = j+shiftVal_x;
+    if(idx_i >= size(I2,1) || idx_i < 1 || idx_j >=size(I2,2) || idx_j < 1)
+      I2(i,j)=0;
+    else
+      I2(i,j) = I1(idx_i, idx_j);
+    end
+  end
+end
 
 
 

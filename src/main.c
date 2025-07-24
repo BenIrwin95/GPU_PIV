@@ -219,7 +219,7 @@ int main(int argc, char* argv[]) {
 
             // fill with zeros
             //float zero_float_pattern = 0.0f;
-            float zero_float_pattern = 1.0f;
+            float zero_float_pattern = 0.0f;
             size_t pattern_size = sizeof(float);
 
             // Enqueue the fill buffer command
