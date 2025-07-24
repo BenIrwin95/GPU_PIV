@@ -7,16 +7,17 @@ CC=gcc
 CFLAGS = -Wall -g
 
 # Directories to search for header files (using -I)
-INCLUDE_DIRS = 
+INCLUDE_DIRS = -I./GPU_FFT
 # Directories to search for libraries (using -L)
-LDFLAGS = -L/usr/local/lib -L/usr/local/lib64  -L./usr/local/cuda-12.5/targets/x86_64-linux/lib/
+LDFLAGS = -L/usr/local/lib -L/usr/local/lib64  -L./GPU_FFT
+# -L./usr/local/cuda-12.5/targets/x86_64-linux/lib/
 
 # Libraries to link against (using -l)
-LIBS = -ltiff -lm -lOpenCL
+LIBS = -ltiff -lm -lOpenCL -lGPU_FFT
 
 
 # src files
-SRCS = ./src/main.c ./src/tiffFunctions.c ./src/utilities.c ./src/inputFunctions.c ./src/FFT_functions.c ./src/mainKernel.c
+SRCS = ./src/main.c ./src/utilities.c ./src/inputFunctions.c ./src/FFT_functions.c ./src/mainKernel.c
 # the object files the .c files get converted into
 OBJS = $(SRCS:.c=.o)
 

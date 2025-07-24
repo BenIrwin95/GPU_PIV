@@ -9,7 +9,8 @@
 #include "tiffFunctions.h" // imports functions for loading and saving tiff images
 #include "utilities.h" // imports miscellaneous functions
 #include "inputFunctions.h" // imports functions for taking inputs from a text file
-#include "FFT_functions.h"
+//#include "FFT_functions.h"
+#include "libGPU_FFT.h"
 #include "mainKernel.h"
 
 
@@ -102,8 +103,8 @@ int main(int argc, char* argv[]) {
     cl_command_queue queueNonBlocking = clCreateCommandQueueWithProperties(context, device_id, non_blocking_properties, &err);
 
     // Create the compute program from the source buffer
-    const char* kernel_sources[] = { kernelSource_MaxCorr, kernelSource_FFT_functions };
-    program = clCreateProgramWithSource(context, 2, kernel_sources, NULL, &err);
+    const char* kernel_sources[] = { kernelSource_MaxCorr, kernelSource_complexMaths, kernelSource_FFT_1D };
+    program = clCreateProgramWithSource(context, 3, kernel_sources, NULL, &err);
     //free(kernel_sources);
     if(err!=CL_SUCCESS){printf("ERROR: OpenCL could retrieve source code for kernel\n");return 1;}
     // Build the program executable
