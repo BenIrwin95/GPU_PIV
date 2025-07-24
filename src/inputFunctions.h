@@ -1,3 +1,4 @@
+
 // function to remove newline characters from a string
 void remove_newline(char *str);
 

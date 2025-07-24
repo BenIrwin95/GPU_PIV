@@ -17,7 +17,7 @@ LIBS = -ltiff -lm -lOpenCL -lGPU_FFT
 
 
 # src files
-SRCS = ./src/main.c ./src/utilities.c ./src/tiffFunctions.c ./src/inputFunctions.c ./src/mainKernel.c ./src/determineCorrelation.c
+SRCS = ./src/main.c ./src/utilities.c ./src/tiffFunctions.c ./src/inputFunctions.c ./src/determineCorrelation.c
 # the object files the .c files get converted into
 OBJS = $(SRCS:.c=.o)
 

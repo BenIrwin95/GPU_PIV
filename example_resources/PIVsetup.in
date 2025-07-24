@@ -1,12 +1,12 @@
 DEBUG 5
 
-N_FRAMES 5
+N_FRAMES 1
 
-IMAGEFILE_1 im%d.tiff
+IMAGEFILE_1 ./example_resources/im%d.tiff
 IM1_FRAME_START 1
 IM1_FRAME_STEP 0
 
-IMAGEFILE_2 im%d.tiff
+IMAGEFILE_2 ./example_resources/im%d.tiff
 IM2_FRAME_START 2
 IM2_FRAME_STEP 0
 
@@ -14,4 +14,4 @@ N_PASS 2
 WINDOW_SIZE 32 16
 
 
-OUTPUT_TEMPLATE vec_%03d.dat
+OUTPUT_TEMPLATE ./example_resources/vec_%03d.dat

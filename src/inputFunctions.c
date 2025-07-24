@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include "err_codes.h"
 
 
 
@@ -40,7 +39,7 @@ char* find_line_after_keyword(const char* filename, const char* keyword, int* st
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
         printf("ERROR: could not open file '%s'\n",filename);
-        *status = INPUTFUNCTIONS_ERR;
+        *status = 1;
         return NULL;
     }
 
@@ -65,7 +64,7 @@ char* find_line_after_keyword(const char* filename, const char* keyword, int* st
             char* result = (char*)malloc(remaining_len + 1);
             if (result == NULL) {
                 printf("ERROR: could not allocate memory for %s\n", keyword);
-                *status = INPUTFUNCTIONS_ERR;
+                *status = 1;
                 fclose(file);
                 free(line);
                 return NULL;
@@ -84,7 +83,7 @@ char* find_line_after_keyword(const char* filename, const char* keyword, int* st
 
     // Keyword not found in any line
     printf("ERROR: Keyword '%s' not found\n",keyword);
-    *status = INPUTFUNCTIONS_ERR;
+    *status = 1;
     fclose(file);
     free(line);
     return NULL;
@@ -94,7 +93,7 @@ char* find_line_after_keyword(const char* filename, const char* keyword, int* st
 
 int extract_int_by_keyword(const char* filename, const char* keyword, int* status){
     char* extracted_line = find_line_after_keyword(filename, keyword, status);
-    if(*status != INPUTFUNCTIONS_ERR){
+    if(*status != 1){
         strip_whitespace_inplace(extracted_line);
         int output = atoi(extracted_line);
         free(extracted_line);
@@ -109,7 +108,7 @@ int extract_int_by_keyword(const char* filename, const char* keyword, int* statu
 int* extract_integer_list_from_char(const char *str, int expected_count, int* status) {
     // Handle NULL or empty input string, or invalid expected_count
     if (str == NULL || strlen(str) == 0 || expected_count <= 0) {
-        *status=INPUTFUNCTIONS_ERR;
+        *status=1;
         return NULL;
     }
 
@@ -117,7 +116,7 @@ int* extract_integer_list_from_char(const char *str, int expected_count, int* st
     char *str_copy = strdup(str);
     if (str_copy == NULL) {
         printf("Failed to duplicate string\n");
-        *status=INPUTFUNCTIONS_ERR;
+        *status=1;
         return NULL; // Memory allocation failed
     }
 
@@ -126,7 +125,7 @@ int* extract_integer_list_from_char(const char *str, int expected_count, int* st
     if (integers == NULL) {
         printf("Failed to allocate memory for integers\n");
         free(str_copy); // Free the string copy
-        *status=INPUTFUNCTIONS_ERR;
+        *status=1;
         return NULL;    // Memory allocation failed
     }
 
@@ -151,7 +150,7 @@ int* extract_integer_list_from_char(const char *str, int expected_count, int* st
     if (current_extracted != expected_count) {
         printf("Error: Expected %d integers but found %d.\n", expected_count, current_extracted);
         free(integers); // Free the allocated memory as the count doesn't match
-        *status=INPUTFUNCTIONS_ERR;
+        *status=1;
         return NULL;    // Return NULL to indicate an error
     }
 
@@ -163,7 +162,7 @@ int* extract_integer_list_from_char(const char *str, int expected_count, int* st
 int* find_int_list_after_keyword(const char* filename, const char* keyword, const int N, int* status){
     char * temp = find_line_after_keyword(filename, keyword,status);
     int* output = extract_integer_list_from_char(temp, N, status);
-    if(*status == INPUTFUNCTIONS_ERR){
+    if(*status == 1){
         printf("ERROR: Something went wrong extracting the integers after keyword %s\n", keyword);
     }
     free(temp);

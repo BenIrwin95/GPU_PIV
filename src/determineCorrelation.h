@@ -1,4 +1,5 @@
 extern const char* kernelSource_complex_multiply_conjugate_norm;
+extern const char* kernelSource_MaxCorr;
 
 
 const char* getOpenCLErrorString(cl_int err);

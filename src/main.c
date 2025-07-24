@@ -1,4 +1,3 @@
-#include "err_codes.h"
 // standard headers
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,7 +10,7 @@
 #include "inputFunctions.h" // imports functions for taking inputs from a text file
 #include "determineCorrelation.h"
 #include "libGPU_FFT.h"
-#include "mainKernel.h"
+
 
 
 #define MAX_FILEPATH_LENGTH 200
@@ -42,7 +41,7 @@ int main(int argc, char* argv[]) {
     clock_t currentTime = clock();
     
     char *inputFile = argv[1];
-    int status = INPUTFUNCTIONS_SUCCESS;
+    int status = 0;
     int DEBUG_LVL = extract_int_by_keyword(inputFile, "DEBUG", &status);
     debug_message("Loading input file variables", DEBUG_LVL, 0, &currentTime);
 
@@ -62,7 +61,7 @@ int main(int argc, char* argv[]) {
 
     char *outputFile_template = find_line_after_keyword(inputFile, "OUTPUT_TEMPLATE", &status);
 
-    if(status == INPUTFUNCTIONS_ERR){
+    if(status == 1){
         printf("ERROR: Something went wrong loading the input file\n");
         free(im1_filepath_template);free(im2_filepath_template);free(windowSizes);free(outputFile_template);
         return 1;
@@ -103,8 +102,8 @@ int main(int argc, char* argv[]) {
     cl_command_queue queueNonBlocking = clCreateCommandQueueWithProperties(context, device_id, non_blocking_properties, &err);
 
     // Create the compute program from the source buffer
-    const char* kernel_sources[] = { kernelSource_MaxCorr, kernelSource_complexMaths, kernelSource_FFT_1D };
-    program = clCreateProgramWithSource(context, 3, kernel_sources, NULL, &err);
+    const char* kernel_sources[] = { kernelSource_complexMaths, kernelSource_FFT_1D, kernelSource_complex_multiply_conjugate_norm, kernelSource_MaxCorr};
+    program = clCreateProgramWithSource(context, 4, kernel_sources, NULL, &err);
     //free(kernel_sources);
     if(err!=CL_SUCCESS){printf("ERROR: OpenCL could retrieve source code for kernel\n");return 1;}
     // Build the program executable
@@ -122,13 +121,13 @@ int main(int argc, char* argv[]) {
     // Create the compute kernel in the program
     cl_kernel kernelMultConj;
     kernelMultConj = clCreateKernel(program, "complex_multiply_conjugate_norm", &err);
-    if(err!=CL_SUCCESS){printf("ERROR: OpenCL could not add kernel function to program\n");return 1;}
+    if(err!=CL_SUCCESS){printf("ERROR: OpenCL could not add complex_multiply_conjugate_norm kernel function to program\n");return 1;}
     cl_kernel kernelMaxCorr;
     kernelMaxCorr = clCreateKernel(program, "findMaxCorr", &err);
-    if(err!=CL_SUCCESS){printf("ERROR: OpenCL could not add kernel function to program\n");return 1;}
+    if(err!=CL_SUCCESS){printf("ERROR: OpenCL could not add findMaxCorr kernel function to program\n");return 1;}
     cl_kernel kernelFFT_1D;
     kernelFFT_1D = clCreateKernel(program, "FFT_1D", &err);
-    if(err!=CL_SUCCESS){printf("ERROR: OpenCL could not add kernel function to program\n");return 1;}
+    if(err!=CL_SUCCESS){printf("ERROR: OpenCL could not add FFT_1D kernel function to program\n");return 1;}
 
 
     cl_ulong local_mem_size;
