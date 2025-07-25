@@ -1,7 +1,7 @@
 clear
 close all
 %n_part=100000;
-n_part=30000;
+n_part=60000;
 x_part1 = -1 + 2*rand(n_part,1);
 y_part1 = -1 + 2*rand(n_part,1);
 

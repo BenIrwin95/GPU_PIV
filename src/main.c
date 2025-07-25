@@ -241,7 +241,7 @@ int main(int argc, char* argv[]) {
             
             // retrieve previously allocated memory on GPU for U and V
             cl_mem U_GPU = U_GPU_passes[pass];
-            cl_mem V_GPU = U_GPU_passes[pass];
+            cl_mem V_GPU = V_GPU_passes[pass];
             size_t vec_bytes = vecDim.x*vecDim.y*sizeof(float);
 
 
@@ -305,8 +305,7 @@ int main(int argc, char* argv[]) {
             // Read the results from the device
             clEnqueueReadBuffer(queue, U_GPU, CL_TRUE, 0, vec_bytes, U, 0, NULL, NULL );
             clEnqueueReadBuffer(queue, V_GPU, CL_TRUE, 0, vec_bytes, V, 0, NULL, NULL );
-            int* flags = identifyInvalidVectors(U, V, vecDim);
-            free(flags);
+            validateVectors(X,Y, U, V, vecDim);
             // convert the pixel displacements to velocity
             multiply_float_array_by_scalar(U, vecDim.x*vecDim.y, 1/dt);
             multiply_float_array_by_scalar(V, vecDim.x*vecDim.y, 1/dt);
