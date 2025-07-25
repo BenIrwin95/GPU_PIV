@@ -294,8 +294,8 @@ int main(int argc, char* argv[]) {
             err = clFinish(queue);
 
           
-
-
+            debug_message("Validating vectors", DEBUG_LVL, 4, &currentTime);
+            validateVectors(X,Y, U, V, vecDim);
 
             //----------------------------------------------------------------------------------------------------
             //-----------------------------------Saving Results---------------------------------------------------
@@ -305,7 +305,7 @@ int main(int argc, char* argv[]) {
             // Read the results from the device
             clEnqueueReadBuffer(queue, U_GPU, CL_TRUE, 0, vec_bytes, U, 0, NULL, NULL );
             clEnqueueReadBuffer(queue, V_GPU, CL_TRUE, 0, vec_bytes, V, 0, NULL, NULL );
-            validateVectors(X,Y, U, V, vecDim);
+
             // convert the pixel displacements to velocity
             multiply_float_array_by_scalar(U, vecDim.x*vecDim.y, 1/dt);
             multiply_float_array_by_scalar(V, vecDim.x*vecDim.y, 1/dt);

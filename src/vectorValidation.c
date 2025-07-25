@@ -20,24 +20,30 @@ float calcDist2(float X1, float Y1, float X2, float Y2){
 int* identifyInvalidVectors(float* U, float* V, cl_int2 vecDim){
   int* flags = (int*)malloc(vecDim.x*vecDim.y*sizeof(int));
   int invalidVectors = 0;
-  for(int i=1;i<vecDim.y-1;i++){
-    for(int j=1;j<vecDim.x-1;j++){
+  for(int i=0;i<vecDim.y;i++){
+    for(int j=0;j<vecDim.x;j++){
       int idx = i*vecDim.x + j;
-      int neighbours[8];
-      neighbours[0]=idx + 1;
-      neighbours[1]=idx + 1 + vecDim.x;
-      neighbours[2]=idx + vecDim.x;
-      neighbours[3]=idx - 1 + vecDim.x;
-      neighbours[4]=idx - 1;
-      neighbours[5]=idx - 1 - vecDim.x;
-      neighbours[6]=idx - vecDim.x;
-      neighbours[7]=idx + 1 - vecDim.x;
       cl_float2 avg;
       avg.x=0;avg.y=0;
-      for( int k=0;k<8;k++){
-        avg.x += U[neighbours[k]] * 0.125;
-        avg.y += V[neighbours[k]] * 0.125;
+      int count=0;
+      for(int ii=-1;ii<=1;ii++){
+        for(int jj=-1;jj<=1;jj++){
+          // Skip the center point itself (we only want neighbors)
+          if (ii == 0 && jj == 0) {
+            continue;
+          }
+          int i_ = i + ii;
+          int j_ = j + jj;
+          // Check if the potential neighbor is within the array bounds
+          if (i_ >= 0 && i_ < vecDim.y && j_ >= 0 && j_ < vecDim.x){
+            //sum_neighbors += input_array[get_1d_index(neighbor_row, neighbor_col, cols)];
+            avg.x += U[i_*vecDim.x + j_];
+            avg.y += V[i_*vecDim.x + j_];
+            count++;
+          }
+        }
       }
+      avg.x=avg.x/count;avg.y=avg.y/count;
       float criterion = sqrt(pow(avg.x - U[idx],2) + pow(avg.y - V[idx],2));
       criterion = criterion/sqrt(pow(avg.x,2) + pow(avg.y,2));
       if(criterion > 0.1){
