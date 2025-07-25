@@ -30,8 +30,8 @@ __kernel void offset_tiling(__global float2* input, int2 inputDim,
     int gid[2] = {get_group_id(0),get_group_id(1)};
     int lid[2] = {get_local_id(0),get_local_id(1)};
 
-    __local float U_local;
-    __local float V_local;
+    float U_local;
+    float V_local;
     U_local = U[gid[1]*vecDim.x + gid[0]];
     V_local = V[gid[1]*vecDim.x + gid[0]];
 
@@ -41,31 +41,30 @@ __kernel void offset_tiling(__global float2* input, int2 inputDim,
     idx.x = gid[0]*strideDim.x;
     idx.y = gid[1]*strideDim.y;
 
-    // U_local = 0;
-    // V_local = 0;
-    // checks to prevent window going off edge
-    if(lid[0]==0 && lid[1]==0){
-        if(idx.x + U_local + N>inputDim.x){
-            U_local -= idx.x+U_local+N;
-            U[gid[1]*vecDim.x + gid[0]] = U_local;
-        }
-        if(idx.x + U_local <0){
-            U_local -= idx.x+U_local;
-            U[gid[1]*vecDim.x + gid[0]] = U_local;
-        }
-        if(idx.y + V_local + N>inputDim.y){
-            V_local -= idx.y+V_local+N;
-            V[gid[1]*vecDim.x + gid[0]] = V_local;
-        }
-        if(idx.y + V_local <0){
-            V_local -= idx.y+V_local;
-            V[gid[1]*vecDim.x + gid[0]] = V_local;
-        }
+    if(idx.x + U_local > inputDim.x-N){
+        float overshoot = (idx.x + U_local) - (inputDim.x-N);
+        U_local -= overshoot;
+        U_local = (idx.x+U_local)-(inputDim.x-N);
+        U[gid[1]*vecDim.x + gid[0]] = U_local;
     }
-    barrier(CLK_LOCAL_MEM_FENCE);
+    if(idx.x + U_local <0){
+        U_local =0;
+        U[gid[1]*vecDim.x + gid[0]] = U_local;
+    }
+    if(idx.y + V_local + N>inputDim.y){
+        float overshoot = (idx.y + V_local) - (inputDim.y-N);
+        V_local -= overshoot;
+        V[gid[1]*vecDim.x + gid[0]] = V_local;
+    }
+    if(idx.y + V_local <0){
+        V_local =0;
+        V[gid[1]*vecDim.x + gid[0]] = V_local;
+    }
 
-    idx.x+=U_local + lid[0];
-    idx.y+=V_local + lid[1];
+
+
+    idx.x+=(int)U_local + lid[0];
+    idx.y+=(int)V_local + lid[1];
 
 
     int idx_input = idx.y*inputDim.x + idx.x;

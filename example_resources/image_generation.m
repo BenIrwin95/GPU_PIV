@@ -34,8 +34,8 @@ for i=1:length(x_part1)
 end
 
 I2 = zeros(size(I1));
-shiftVal_x = 5;
-shiftVal_y = 5;
+shiftVal_x = -8;
+shiftVal_y = 0;
 for i=1:size(I2,1)
   for j=1:size(I2,2)
     idx_i = i+shiftVal_y;

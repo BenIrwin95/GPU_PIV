@@ -22,6 +22,14 @@ void debug_message(const char* message, int debug, int min_debug, clock_t* lastT
 
 
 
+void round_float_array(float* A, int N){
+  for(int i=0;i<N;i++){
+    A[i] = (int)A[i];
+  }
+}
+
+
+
 
 
 void multiply_double_array_by_scalar(double* arr, int arrSize, double scalar){

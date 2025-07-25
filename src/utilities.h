@@ -3,6 +3,7 @@
 // utility function to display a debug message if a debug variable is higher than some value
 void debug_message(const char* message, int debug, int min_debug, clock_t* lastTime);
 
+void round_float_array(float* A, int N);
 
 
 // function to multiply every element of a double array by a scalar value

@@ -228,6 +228,13 @@ int main(int argc, char* argv[]) {
             float* U = U_passes[pass];
             float* V = V_passes[pass];
             cl_int2 vecDim = vecDim_passes[pass];
+
+            // populate U and V with last pass
+            if(pass>0){
+                gridInterpolate(X_passes[pass-1], Y_passes[pass-1],U_passes[pass-1], V_passes[pass-1], vecDim_passes[pass-1], X, Y,U, V, vecDim);
+                round_float_array(U, vecDim.x*vecDim.y);
+                round_float_array(V, vecDim.x*vecDim.y);
+            }
             
             // allocate memory on GPU for U and V
             size_t vec_bytes = vecDim.x*vecDim.y*sizeof(float);
@@ -239,10 +246,15 @@ int main(int argc, char* argv[]) {
 
             // fill with zeros
             //float zero_float_pattern = 0.0f;
-            float zero_float_pattern = 0.0f;
-            size_t pattern_size = sizeof(float);
-            err = clEnqueueFillBuffer(queue, U_GPU, &zero_float_pattern, pattern_size, 0, vec_bytes, 0, NULL, NULL);
-            err = clEnqueueFillBuffer(queue, V_GPU, &zero_float_pattern, pattern_size, 0, vec_bytes, 0, NULL, NULL);
+            if(pass==0){
+                float zero_float_pattern = 0.0f;
+                size_t pattern_size = sizeof(float);
+                err = clEnqueueFillBuffer(queue, U_GPU, &zero_float_pattern, pattern_size, 0, vec_bytes, 0, NULL, NULL);
+                err = clEnqueueFillBuffer(queue, V_GPU, &zero_float_pattern, pattern_size, 0, vec_bytes, 0, NULL, NULL);
+            } else {
+                err = clEnqueueWriteBuffer( queue, U_GPU, CL_TRUE, 0, vec_bytes, U, 0, NULL, NULL );
+                err = clEnqueueWriteBuffer( queue, V_GPU, CL_TRUE, 0, vec_bytes, V, 0, NULL, NULL );
+            }
 
             //----------------------------------------------------------------------------------------------------
             //-------------------------------Initialising windows-------------------------------------------
