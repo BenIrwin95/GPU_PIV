@@ -152,8 +152,8 @@ int main(int argc, char* argv[]) {
     size_t imageBytes = imageDim.x*imageDim.y*sizeof(cl_float2);
     cl_mem im1_GPU = clCreateBuffer(context, CL_MEM_READ_ONLY, imageBytes, NULL, &err); // we assume our image size will be constant and thus assign a buffer in advance for frames
     cl_mem im2_GPU = clCreateBuffer(context, CL_MEM_READ_ONLY, imageBytes, NULL, &err);
-    cl_mem im1_windows_max = clCreateBuffer(context, CL_MEM_READ_WRITE, maxTiledInputSize, NULL, &err); // the buffer that will hold all the windowed parts of the image during a pass
-    cl_mem im2_windows_max = clCreateBuffer(context, CL_MEM_READ_WRITE, maxTiledInputSize, NULL, &err); // allocate space based on the max expected size, during each pass we then create a subbuffer of it
+    cl_mem im1_windows = clCreateBuffer(context, CL_MEM_READ_WRITE, maxTiledInputSize, NULL, &err); // the buffer that will hold all the windowed parts of the image during a pass
+    cl_mem im2_windows = clCreateBuffer(context, CL_MEM_READ_WRITE, maxTiledInputSize, NULL, &err); // allocate space based on the max expected size, during each pass we just use as much as we need
 
 
 
@@ -186,6 +186,7 @@ int main(int argc, char* argv[]) {
         // load the images to GPU
         err = clEnqueueWriteBuffer( queue, im1_GPU, CL_TRUE, 0, imageBytes, im1, 0, NULL, NULL );
         err = clEnqueueWriteBuffer( queue, im2_GPU, CL_TRUE, 0, imageBytes, im2, 0, NULL, NULL );
+        free(im1);free(im2);
 
 
 
@@ -259,16 +260,7 @@ int main(int argc, char* argv[]) {
             //-------------------------------Initialising windows-------------------------------------------
             //----------------------------------------------------------------------------------------------------
             debug_message("Initialising windows", DEBUG_LVL, 3, &currentTime);
-            cl_mem im1_windows;
-            cl_mem im2_windows;
             size_t windowedImageBytes = (vecDim.x*windowSize)*(vecDim.y*windowSize) * sizeof(cl_float2);
-
-            
-            subRegion.origin = 0 * sizeof(float); // where we start
-            subRegion.size = windowedImageBytes;   // Use a region of 128 floats
-            im1_windows = clCreateSubBuffer(im1_windows_max, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &subRegion, NULL);
-            im2_windows = clCreateSubBuffer(im2_windows_max, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &subRegion, NULL);
-
 
             debug_message("Copying windows to tiles", DEBUG_LVL, 4, &currentTime);
             uniformly_tile_data(im1_GPU, imageDim, windowSize, window_shift, vecDim, im1_windows, kernel_uniformTiling, queue);
@@ -335,7 +327,7 @@ int main(int argc, char* argv[]) {
             //-----------------------------------Deallocating memory----------------------------------------------
             //----------------------------------------------------------------------------------------------------
             debug_message("Deallocating memory", DEBUG_LVL, 3, &currentTime);
-            clReleaseMemObject(im1_windows);clReleaseMemObject(im2_windows);
+            
 
 
         }
@@ -345,7 +337,7 @@ int main(int argc, char* argv[]) {
     
 
     debug_message("Cleaning up", DEBUG_LVL, 3, &currentTime);
-
+    
     for(int i=0;i<N_pass;i++){
         free(X_passes[i]);
         free(Y_passes[i]);
@@ -355,13 +347,16 @@ int main(int argc, char* argv[]) {
         clReleaseMemObject(V_GPU_passes[i]);
     }
     free(X_passes);free(Y_passes);free(U_passes);free(V_passes);free(vecDim_passes);
+    free(U_GPU_passes);free(V_GPU_passes);
 
     
-    clReleaseMemObject(im1_windows_max);clReleaseMemObject(im2_windows_max);
     clReleaseMemObject(im1_GPU);clReleaseMemObject(im2_GPU);
+    clReleaseMemObject(im1_windows);clReleaseMemObject(im2_windows);
     clReleaseKernel(kernelFFT_1D);
     clReleaseKernel(kernelMultConj);
     clReleaseKernel(kernelMaxCorr);
+    clReleaseKernel(kernel_uniformTiling);
+    clReleaseKernel(kernel_offsetTiling);
     clReleaseProgram(program);
     clReleaseCommandQueue(queue);
     clReleaseCommandQueue(queueNonBlocking);
