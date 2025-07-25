@@ -3,7 +3,7 @@ close all
 %%
 data = unpackData("vec_000.dat");
 
-pass=1;
+pass=2;
 figure
 quiver(data.X{pass},data.Y{pass},data.U{pass}, data.V{pass})
 axis equal

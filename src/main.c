@@ -103,11 +103,13 @@ int main(int argc, char* argv[]) {
     float** U_passes = (float**)malloc(N_pass * sizeof(float*));
     float** V_passes = (float**)malloc(N_pass * sizeof(float*));
     cl_int2* vecDim_passes = (cl_int2*)malloc(N_pass * sizeof(cl_int2)); // the dimensions of the arrays in each pass
+    
+    cl_mem* U_GPU_passes = (cl_mem*)malloc(N_pass*sizeof(cl_mem));
+    cl_mem* V_GPU_passes = (cl_mem*)malloc(N_pass*sizeof(cl_mem));
 
 
     // determining the max size of data structures to prevent repeated malloc's and free's
     size_t maxTiledInputSize = 0;
-    size_t maxVecSize=0;
     // retrieve size of 1 image
     char temp_file[MAX_FILEPATH_LENGTH];
     snprintf(temp_file, sizeof(temp_file),im1_filepath_template, im1_frame_start);
@@ -125,20 +127,22 @@ int main(int argc, char* argv[]) {
         if(bytesNeeded > maxTiledInputSize){
             maxTiledInputSize = bytesNeeded;
         }
-        size_t sizeNeededVec = vecDim.x*vecDim.y*sizeof(float);
-        if(sizeNeededVec > maxVecSize){
-            maxVecSize = sizeNeededVec;
-        }
 
         // allocate space for X,Y,U,V
-        X_passes[i] = (float*)malloc(sizeNeededVec);
-        Y_passes[i] = (float*)malloc(sizeNeededVec);
-        U_passes[i] = (float*)malloc(sizeNeededVec);
-        V_passes[i] = (float*)malloc(sizeNeededVec);
+        size_t vecSize = vecDim.x*vecDim.y*sizeof(float);
+        X_passes[i] = (float*)malloc(vecSize);
+        Y_passes[i] = (float*)malloc(vecSize);
+        U_passes[i] = (float*)malloc(vecSize);
+        V_passes[i] = (float*)malloc(vecSize);
         vecDim_passes[i]=vecDim;
 
         // populate X and Y
         populateGrid(X_passes[i], Y_passes[i], vecDim, windowSize, window_shift);
+        
+        
+        //allocate space for U and V on GPU
+        U_GPU_passes[i] = clCreateBuffer(context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
+        V_GPU_passes[i] = clCreateBuffer(context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
 
     }
 
@@ -150,10 +154,7 @@ int main(int argc, char* argv[]) {
     cl_mem im2_GPU = clCreateBuffer(context, CL_MEM_READ_ONLY, imageBytes, NULL, &err);
     cl_mem im1_windows_max = clCreateBuffer(context, CL_MEM_READ_WRITE, maxTiledInputSize, NULL, &err); // the buffer that will hold all the windowed parts of the image during a pass
     cl_mem im2_windows_max = clCreateBuffer(context, CL_MEM_READ_WRITE, maxTiledInputSize, NULL, &err); // allocate space based on the max expected size, during each pass we then create a subbuffer of it
-    
-    // allocate space for velocity data here just the once
-    cl_mem U_GPU_max = clCreateBuffer(context, CL_MEM_READ_WRITE, maxVecSize, NULL, &err);
-    cl_mem V_GPU_max = clCreateBuffer(context, CL_MEM_READ_WRITE, maxVecSize, NULL, &err);
+
 
 
     debug_message("Iterating through frame-pairs", DEBUG_LVL, 0, &currentTime);
@@ -236,12 +237,10 @@ int main(int argc, char* argv[]) {
                 round_float_array(V, vecDim.x*vecDim.y);
             }
             
-            // allocate memory on GPU for U and V
+            // retrieve previously allocated memory on GPU for U and V
+            cl_mem U_GPU = U_GPU_passes[pass];
+            cl_mem V_GPU = U_GPU_passes[pass];
             size_t vec_bytes = vecDim.x*vecDim.y*sizeof(float);
-            subRegion.origin = 0 * sizeof(float); // where we start
-            subRegion.size = vec_bytes;   
-            cl_mem U_GPU = clCreateSubBuffer(U_GPU_max, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &subRegion, NULL);
-            cl_mem V_GPU = clCreateSubBuffer(V_GPU_max, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &subRegion, NULL);
 
 
             // fill with zeros
@@ -336,8 +335,6 @@ int main(int argc, char* argv[]) {
             //-----------------------------------Deallocating memory----------------------------------------------
             //----------------------------------------------------------------------------------------------------
             debug_message("Deallocating memory", DEBUG_LVL, 3, &currentTime);
-            
-            clReleaseMemObject(U_GPU);clReleaseMemObject(V_GPU);
             clReleaseMemObject(im1_windows);clReleaseMemObject(im2_windows);
 
 
@@ -348,13 +345,14 @@ int main(int argc, char* argv[]) {
     
 
     debug_message("Cleaning up", DEBUG_LVL, 3, &currentTime);
-    clReleaseMemObject(U_GPU_max);clReleaseMemObject(V_GPU_max);
 
     for(int i=0;i<N_pass;i++){
         free(X_passes[i]);
         free(Y_passes[i]);
         free(U_passes[i]);
         free(V_passes[i]);
+        clReleaseMemObject(U_GPU_passes[i]);
+        clReleaseMemObject(V_GPU_passes[i]);
     }
     free(X_passes);free(Y_passes);free(U_passes);free(V_passes);free(vecDim_passes);
 
