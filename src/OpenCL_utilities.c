@@ -4,6 +4,7 @@
 #include "libGPU_FFT.h"
 #include "determineCorrelation.h"
 #include "dataArrangement.h"
+#include "vectorValidation.h"
 #include "OpenCL_utilities.h"
 
 
@@ -78,7 +79,8 @@ const char* getOpenCLErrorString(cl_int err) {
 
 
 cl_int initialise_OpenCL(cl_platform_id *platform, cl_device_id *device_id, cl_context *context, cl_command_queue *queue, cl_command_queue *queueNonBlocking, cl_program *program, 
-                          cl_kernel *kernelFFT_1D, cl_kernel *kernelMultConj, cl_kernel *kernelMaxCorr, cl_kernel *kernel_uniformTiling, cl_kernel *kernel_offsetTiling){
+                          cl_kernel *kernelFFT_1D, cl_kernel *kernelMultConj, cl_kernel *kernelMaxCorr, cl_kernel *kernel_uniformTiling, cl_kernel *kernel_offsetTiling,
+                         cl_kernel *kernel_identifyInvalidVectors, cl_kernel *kernel_correctInvalidVectors){
     cl_int err;
     // Bind to platform
     err = clGetPlatformIDs(1, platform, NULL);
@@ -101,8 +103,8 @@ cl_int initialise_OpenCL(cl_platform_id *platform, cl_device_id *device_id, cl_c
     *queueNonBlocking = clCreateCommandQueueWithProperties(*context, *device_id, non_blocking_properties, &err);
 
     // Create the compute program from the source buffer
-    const char* kernel_sources[] = { kernelSource_complexMaths, kernelSource_FFT_1D, kernelSource_complex_multiply_conjugate_norm, kernelSource_MaxCorr, kernelSource_uniformTiling};
-    *program = clCreateProgramWithSource(*context, 5, kernel_sources, NULL, &err);
+    const char* kernel_sources[] = { kernelSource_complexMaths, kernelSource_FFT_1D, kernelSource_complex_multiply_conjugate_norm, kernelSource_MaxCorr, kernelSource_uniformTiling,kernelSource_vectorValidation};
+    *program = clCreateProgramWithSource(*context, 6, kernel_sources, NULL, &err);
     //free(kernel_sources);
     if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
     // Build the program executable
@@ -127,6 +129,10 @@ cl_int initialise_OpenCL(cl_platform_id *platform, cl_device_id *device_id, cl_c
     *kernel_uniformTiling = clCreateKernel(*program, "uniform_tiling", &err);
     if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
     *kernel_offsetTiling = clCreateKernel(*program, "offset_tiling", &err);
+    if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
+    *kernel_identifyInvalidVectors = clCreateKernel(*program, "identifyInvalidVectors", &err);
+    if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
+    *kernel_correctInvalidVectors = clCreateKernel(*program, "correctInvalidVectors", &err);
     if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
     return CL_SUCCESS;
 }

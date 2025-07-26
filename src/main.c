@@ -88,8 +88,10 @@ int main(int argc, char* argv[]) {
     cl_kernel kernelFFT_1D;
     cl_kernel kernel_uniformTiling;
     cl_kernel kernel_offsetTiling;
+    cl_kernel kernel_identifyInvalidVectors;
+    cl_kernel kernel_correctInvalidVectors;
     cl_int err;
-    err = initialise_OpenCL(&platform, &device_id, &context, &queue, &queueNonBlocking, &program, &kernelFFT_1D, &kernelMultConj, &kernelMaxCorr, &kernel_uniformTiling, &kernel_offsetTiling);
+    err = initialise_OpenCL(&platform, &device_id, &context, &queue, &queueNonBlocking, &program, &kernelFFT_1D, &kernelMultConj, &kernelMaxCorr, &kernel_uniformTiling, &kernel_offsetTiling, &kernel_identifyInvalidVectors, &kernel_correctInvalidVectors);
     if(err!=CL_SUCCESS){
       return 1;
     }
@@ -107,10 +109,13 @@ int main(int argc, char* argv[]) {
     
     cl_mem* U_GPU_passes = (cl_mem*)malloc(N_pass*sizeof(cl_mem));
     cl_mem* V_GPU_passes = (cl_mem*)malloc(N_pass*sizeof(cl_mem));
+    cl_mem* X_GPU_passes = (cl_mem*)malloc(N_pass*sizeof(cl_mem));
+    cl_mem* Y_GPU_passes = (cl_mem*)malloc(N_pass*sizeof(cl_mem));
 
 
     // determining the max size of data structures to prevent repeated malloc's and free's
     size_t maxTiledInputSize = 0;
+    size_t vecSize_max=0;
     // retrieve size of 1 image
     char temp_file[MAX_FILEPATH_LENGTH];
     snprintf(temp_file, sizeof(temp_file),im1_filepath_template, im1_frame_start);
@@ -131,6 +136,7 @@ int main(int argc, char* argv[]) {
 
         // allocate space for X,Y,U,V
         size_t vecSize = vecDim.x*vecDim.y*sizeof(float);
+        if(vecSize>vecSize_max){vecSize_max=vecSize;}
         X_passes[i] = (float*)malloc(vecSize);
         Y_passes[i] = (float*)malloc(vecSize);
         U_passes[i] = (float*)malloc(vecSize);
@@ -144,8 +150,13 @@ int main(int argc, char* argv[]) {
         //allocate space for U and V on GPU
         U_GPU_passes[i] = clCreateBuffer(context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
         V_GPU_passes[i] = clCreateBuffer(context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
-
+        X_GPU_passes[i] = clCreateBuffer(context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
+        Y_GPU_passes[i] = clCreateBuffer(context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
     }
+
+
+    // create a buffer for flags (needed for vector validation)
+    cl_mem flags_GPU = clCreateBuffer(context, CL_MEM_READ_WRITE, vecSize_max, NULL, &err);
 
     // image buffers
     cl_int2 imageDim;
@@ -223,7 +234,6 @@ int main(int argc, char* argv[]) {
             int windowSize = windowSizes[pass];
             double overlap = 0.5;
             int window_shift = (1.0-overlap)*windowSize;
-            cl_buffer_region subRegion; // needed for making subbuffers
             float dt = 1.0;
             
             float* X = X_passes[pass];
@@ -240,9 +250,14 @@ int main(int argc, char* argv[]) {
             }
             
             // retrieve previously allocated memory on GPU for U and V
+            cl_mem X_GPU = U_GPU_passes[pass];
+            cl_mem Y_GPU = V_GPU_passes[pass];
             cl_mem U_GPU = U_GPU_passes[pass];
             cl_mem V_GPU = V_GPU_passes[pass];
             size_t vec_bytes = vecDim.x*vecDim.y*sizeof(float);
+
+            err = clEnqueueWriteBuffer( queue, X_GPU, CL_TRUE, 0, vec_bytes, X, 0, NULL, NULL );
+            err = clEnqueueWriteBuffer( queue, Y_GPU, CL_TRUE, 0, vec_bytes, Y, 0, NULL, NULL );
 
 
             // fill with zeros
@@ -261,7 +276,6 @@ int main(int argc, char* argv[]) {
             //-------------------------------Initialising windows-------------------------------------------
             //----------------------------------------------------------------------------------------------------
             debug_message("Initialising windows", DEBUG_LVL, 3, &currentTime);
-            size_t windowedImageBytes = (vecDim.x*windowSize)*(vecDim.y*windowSize) * sizeof(cl_float2);
 
             debug_message("Copying windows to tiles", DEBUG_LVL, 4, &currentTime);
             uniformly_tile_data(im1_GPU, imageDim, windowSize, window_shift, vecDim, im1_windows, kernel_uniformTiling, queue);
@@ -295,8 +309,9 @@ int main(int argc, char* argv[]) {
 
           
             debug_message("Validating vectors", DEBUG_LVL, 4, &currentTime);
-            validateVectors(X,Y, U, V, vecDim);
-
+            //validateVectors(X,Y, U, V, vecDim);
+            //identifyInvalidVectors(U_GPU, V_GPU, flags_GPU, vecDim, kernel_identifyInvalidVectors, queue);
+            validateVectors(X_GPU, Y_GPU, U_GPU, V_GPU, flags_GPU, vecDim, kernel_identifyInvalidVectors, kernel_correctInvalidVectors, queue);
             //----------------------------------------------------------------------------------------------------
             //-----------------------------------Saving Results---------------------------------------------------
             //----------------------------------------------------------------------------------------------------
@@ -345,15 +360,18 @@ int main(int argc, char* argv[]) {
         free(Y_passes[i]);
         free(U_passes[i]);
         free(V_passes[i]);
+        clReleaseMemObject(X_GPU_passes[i]);
+        clReleaseMemObject(Y_GPU_passes[i]);
         clReleaseMemObject(U_GPU_passes[i]);
         clReleaseMemObject(V_GPU_passes[i]);
     }
     free(X_passes);free(Y_passes);free(U_passes);free(V_passes);free(vecDim_passes);
-    free(U_GPU_passes);free(V_GPU_passes);
+    free(X_GPU_passes);free(Y_GPU_passes);free(U_GPU_passes);free(V_GPU_passes);
 
     
     clReleaseMemObject(im1_GPU);clReleaseMemObject(im2_GPU);
     clReleaseMemObject(im1_windows);clReleaseMemObject(im2_windows);
+    clReleaseMemObject(flags_GPU);
     clReleaseKernel(kernelFFT_1D);
     clReleaseKernel(kernelMultConj);
     clReleaseKernel(kernelMaxCorr);
