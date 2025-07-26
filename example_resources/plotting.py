@@ -143,9 +143,10 @@ def unpack_data(filename):
 
 
 out=unpack_data("vec_000.dat")
+pss=1;
 step=10;
 plt.figure(figsize=(6, 6))
-plt.quiver(out['X'][0], out['Y'][0], out['U'][0], out['V'][0],units='dots',       # Arrow dimensions in dots (pixels)
+plt.quiver(out['X'][pss], out['Y'][pss], out['U'][pss], out['V'][pss],units='dots',       # Arrow dimensions in dots (pixels)
                 scale_units='dots', # Arrow length scaling in dots (pixels)
                 scale=0.9,            # A reference scale (e.g., 1 data unit = 1 pixel)
                 width=2,            # Shaft width in 'dots' (e.g., 2 pixels wide)

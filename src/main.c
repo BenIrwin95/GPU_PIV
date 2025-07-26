@@ -107,15 +107,16 @@ int main(int argc, char* argv[]) {
     float** V_passes = (float**)malloc(N_pass * sizeof(float*));
     cl_int2* vecDim_passes = (cl_int2*)malloc(N_pass * sizeof(cl_int2)); // the dimensions of the arrays in each pass
     
-    cl_mem* U_GPU_passes = (cl_mem*)malloc(N_pass*sizeof(cl_mem));
-    cl_mem* V_GPU_passes = (cl_mem*)malloc(N_pass*sizeof(cl_mem));
     cl_mem* X_GPU_passes = (cl_mem*)malloc(N_pass*sizeof(cl_mem));
     cl_mem* Y_GPU_passes = (cl_mem*)malloc(N_pass*sizeof(cl_mem));
+    cl_mem* U_GPU_passes = (cl_mem*)malloc(N_pass*sizeof(cl_mem));
+    cl_mem* V_GPU_passes = (cl_mem*)malloc(N_pass*sizeof(cl_mem));
+
 
 
     // determining the max size of data structures to prevent repeated malloc's and free's
     size_t maxTiledInputSize = 0;
-    size_t vecSize_max=0;
+    size_t flagsSize_max=0;
     // retrieve size of 1 image
     char temp_file[MAX_FILEPATH_LENGTH];
     snprintf(temp_file, sizeof(temp_file),im1_filepath_template, im1_frame_start);
@@ -136,7 +137,8 @@ int main(int argc, char* argv[]) {
 
         // allocate space for X,Y,U,V
         size_t vecSize = vecDim.x*vecDim.y*sizeof(float);
-        if(vecSize>vecSize_max){vecSize_max=vecSize;}
+        size_t flagsSize = vecDim.x*vecDim.y*sizeof(int);
+        if(flagsSize>flagsSize_max){flagsSize_max=flagsSize;}
         X_passes[i] = (float*)malloc(vecSize);
         Y_passes[i] = (float*)malloc(vecSize);
         U_passes[i] = (float*)malloc(vecSize);
@@ -148,15 +150,16 @@ int main(int argc, char* argv[]) {
         
         
         //allocate space for U and V on GPU
-        U_GPU_passes[i] = clCreateBuffer(context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
-        V_GPU_passes[i] = clCreateBuffer(context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
         X_GPU_passes[i] = clCreateBuffer(context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
         Y_GPU_passes[i] = clCreateBuffer(context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
+        U_GPU_passes[i] = clCreateBuffer(context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
+        V_GPU_passes[i] = clCreateBuffer(context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
+
     }
 
 
     // create a buffer for flags (needed for vector validation)
-    cl_mem flags_GPU = clCreateBuffer(context, CL_MEM_READ_WRITE, vecSize_max, NULL, &err);
+    cl_mem flags_GPU = clCreateBuffer(context, CL_MEM_READ_WRITE, flagsSize_max, NULL, &err);
 
     // image buffers
     cl_int2 imageDim;
@@ -250,8 +253,8 @@ int main(int argc, char* argv[]) {
             }
             
             // retrieve previously allocated memory on GPU for U and V
-            cl_mem X_GPU = U_GPU_passes[pass];
-            cl_mem Y_GPU = V_GPU_passes[pass];
+            cl_mem X_GPU = X_GPU_passes[pass];
+            cl_mem Y_GPU = Y_GPU_passes[pass];
             cl_mem U_GPU = U_GPU_passes[pass];
             cl_mem V_GPU = V_GPU_passes[pass];
             size_t vec_bytes = vecDim.x*vecDim.y*sizeof(float);

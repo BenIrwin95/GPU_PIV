@@ -68,12 +68,12 @@ __kernel void correctInvalidVectors(__global float* X,
       int i_start, i_end, j_start, j_end;
       j_start = gid[0]-srcDist;                     if(j_start<0){j_start=0;};
       j_end =gid[0]+srcDist;                        if(j_end>vecDim.x){j_end=vecDim.x;};
-      i_start = gid[1]-srcDist*vecDim.x;            if(i_start<0){i_start=0;};
-      i_end = gid[1]+srcDist*vecDim.x;              if(i_end>vecDim.y){i_end=vecDim.y;};
+      i_start = gid[1]-srcDist;            if(i_start<0){i_start=0;};
+      i_end = gid[1]+srcDist;              if(i_end>vecDim.y){i_end=vecDim.y;};
       // iterate through the points we will interpolate from
-      float U_new=0.0;
-      float V_new=0.0;
-      float sum_weights=0.0;
+      float U_new=0.0f;
+      float V_new=0.0f;
+      float sum_weights=0.0f;
       for(int i=i_start;i<i_end;i++){
         for(int j=j_start;j<j_end;j++){
           int idx_local = i*vecDim.x+j;
@@ -86,6 +86,7 @@ __kernel void correctInvalidVectors(__global float* X,
           }
         }
       }
+
       U[idx] = U_new/sum_weights;
       V[idx] = V_new/sum_weights;
 
