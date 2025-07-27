@@ -2,11 +2,13 @@ DEBUG 3
 
 N_FRAMES 1
 
-IMAGEFILE_1 ./example_resources/im%d.tiff
+//IMAGEFILE_1 ./example_resources/im%d.tiff
+IMAGEFILE_1 ./example_resources/piv_test_image_frame%d.tif
 IM1_FRAME_START 1
 IM1_FRAME_STEP 0
 
-IMAGEFILE_2 ./example_resources/im%d.tiff
+//IMAGEFILE_2 ./example_resources/im%d.tiff
+IMAGEFILE_2 ./example_resources/piv_test_image_frame%d.tif
 IM2_FRAME_START 2
 IM2_FRAME_STEP 0
 

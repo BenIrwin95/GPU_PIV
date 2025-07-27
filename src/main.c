@@ -278,8 +278,6 @@ int main(int argc, char* argv[]) {
 
           
             debug_message("Validating vectors", DEBUG_LVL, 4, &currentTime);
-            //validateVectors(X,Y, U, V, vecDim);
-            //identifyInvalidVectors(U_GPU, V_GPU, flags_GPU, vecDim, kernel_identifyInvalidVectors, queue);
             validateVectors(X_GPU, Y_GPU, U_GPU, V_GPU, flags_GPU, vecDim, &env);
             //----------------------------------------------------------------------------------------------------
             //-----------------------------------Saving Results---------------------------------------------------

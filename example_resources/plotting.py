@@ -158,3 +158,12 @@ plt.axis('equal')
 plt.show()
 
 
+plt.figure(figsize=(6, 6))
+Y = out['Y'][1]
+U = out['U'][1]
+slc = 100
+plt.plot(Y[:,slc], U[:,slc])
+plt.show()
+
+
+

@@ -35,8 +35,10 @@ __kernel void identifyInvalidVectors(__global float* U,
       }
     }
     avg.x=avg.x/count;avg.y=avg.y/count;
-    float criterion = sqrt(pow(avg.x - U[idx],2) + pow(avg.y - V[idx],2));
-    criterion = criterion/sqrt(pow(avg.x,2) + pow(avg.y,2));
+    float eps=1e-6f;
+    float criterion = sqrt(pow(avg.x - U[idx],2) + pow(avg.y - V[idx],2)) + eps;
+    float AVE = sqrt(pow(avg.x,2) + pow(avg.y,2));
+    criterion = criterion/AVE;
     if(criterion > 0.1){
       flags[idx] = 1;
     } else {
@@ -79,9 +81,10 @@ __kernel void correctInvalidVectors(__global float* X,
           }
         }
       }
-
-      U[idx] = U_new/sum_weights;
-      V[idx] = V_new/sum_weights;
+      if(sum_weights>0){
+        U[idx] = U_new/sum_weights;
+        V[idx] = V_new/sum_weights;
+      }
 
 
     }

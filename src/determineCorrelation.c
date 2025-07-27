@@ -49,7 +49,6 @@ __kernel void complex_multiply_conjugate_norm(__global float2* A,
 
 
 const char* kernelSource_MaxCorr = R"(
-
     __kernel void findMaxCorr(__global float2* input,
                             int2 inputDim,
                             int windowSize,
@@ -95,7 +94,7 @@ const char* kernelSource_MaxCorr = R"(
         float best_i_float = best_i;
         float best_j_float = best_j;
         if(maxCorr>0 && subpixel==1){
-          float eps=1e-6;
+          float eps=1e-6f;
           int i_plus = (best_i+1) % windowSize; // modulus handles how index 0 is the first element, not in the middle
           int i_neg = (best_i == 0) ? (windowSize - 1) : (best_i - 1);
           int j_plus = (best_j+1) % windowSize;
@@ -103,28 +102,31 @@ const char* kernelSource_MaxCorr = R"(
           float val, val_forward,val_backward;
           float denom;
           val = input[startPoint + best_i*inputDim.x + best_j].x + eps;
+          float log_val=0.0f;
+          if(val > 0.0f){
+            log_val = log(val);
+          }
           // i
           val_forward = input[startPoint + i_plus*inputDim.x + best_j].x + eps;
           val_backward = input[startPoint + i_neg*inputDim.x + best_j].x + eps;
-          if(val>0 && val_forward>0 && val_backward>0){
-            val = log(val);
+          if(val>0.0f && val_forward>0.0f && val_backward>0.0f){
+            log_val = log(val);
             val_forward = log(val_forward);
             val_backward = log(val_backward);
-            denom = (2*val_backward - 4*val + 2*val_forward);
-            if(denom !=0){
-              best_i_float += (val_backward-val_forward)/denom;
+            denom = (2.0f*val_backward - 4.0f*log_val + 2.0f*val_forward);
+            if(fabs(denom) >1e-9f){
+              best_i_float+=(val_backward-val_forward)/denom;
             }
           }
           // j
           val_forward = input[startPoint + best_i*inputDim.x + j_plus].x + eps;
           val_backward = input[startPoint + best_i*inputDim.x + j_neg].x + eps;
-          if(val>0 && val_forward>0 && val_backward>0){
-            val = log(val);
+          if(val>0.0f && val_forward>0.0f && val_backward>0.0f){
             val_forward = log(val_forward);
             val_backward = log(val_backward);
-            denom = (2*val_backward - 4*val + 2*val_forward);
-            if(denom !=0){
-              best_j_float += (val_backward-val_forward)/denom;
+            denom = (2*val_backward - 4*log_val + 2*val_forward);
+            if(fabs(denom) >1e-9f){
+              //best_j_float+=(val_backward-val_forward)/denom;
             }
           }
         }
