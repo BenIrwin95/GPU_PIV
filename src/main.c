@@ -263,6 +263,8 @@ int main(int argc, char* argv[]) {
             size_t localSize[2] = {windowSize,1};
             size_t numGroups[2] = {vecDim.x, vecDim.y};
             size_t globalSize[2] = {numGroups[0]*localSize[0],numGroups[1]*localSize[1]};
+            int activate_subpixel=0;
+            if(pass == piv_data.N_pass-1){activate_subpixel=1;}
             int idx=0;
             err = clSetKernelArg(env.kernelMaxCorr, idx, sizeof(cl_mem), &im1_windows); idx++;
             err = clSetKernelArg(env.kernelMaxCorr, idx, sizeof(cl_int2), &inputDim); idx++;
@@ -270,6 +272,7 @@ int main(int argc, char* argv[]) {
             err = clSetKernelArg(env.kernelMaxCorr, idx, sizeof(cl_mem), &U_GPU); idx++;
             err = clSetKernelArg(env.kernelMaxCorr, idx, sizeof(cl_mem), &V_GPU); idx++;
             err = clSetKernelArg(env.kernelMaxCorr, idx, sizeof(cl_int2), &vecDim); idx++;
+            err = clSetKernelArg(env.kernelMaxCorr, idx, sizeof(int), &activate_subpixel); idx++;
             err=clEnqueueNDRangeKernel(env.queue, env.kernelMaxCorr, 2, NULL, globalSize, localSize,0, NULL, NULL);
             err = clFinish(env.queue);
 

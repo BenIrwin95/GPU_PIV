@@ -55,7 +55,8 @@ const char* kernelSource_MaxCorr = R"(
                             int windowSize,
                             __global float* U,
                             __global float* V,
-                            int2 outputDim){
+                            int2 outputDim,
+                            int subpixel){
 
     const int lid = get_local_id(0);
     const int gid[2] = {get_group_id(0),get_group_id(1)};
@@ -89,14 +90,52 @@ const char* kernelSource_MaxCorr = R"(
                 maxCorr = colMax[j];
             }
         }
-        if(best_i > windowSize/2){
-            best_i = best_i-windowSize;
+
+        //subpixel accuracy
+        float best_i_float = best_i;
+        float best_j_float = best_j;
+        if(maxCorr>0 && subpixel==1){
+          float eps=1e-6;
+          int i_plus = (best_i+1) % windowSize; // modulus handles how index 0 is the first element, not in the middle
+          int i_neg = (best_i == 0) ? (windowSize - 1) : (best_i - 1);
+          int j_plus = (best_j+1) % windowSize;
+          int j_neg = (best_j == 0) ? (windowSize - 1) : (best_j - 1);
+          float val, val_forward,val_backward;
+          float denom;
+          val = input[startPoint + best_i*inputDim.x + best_j].x + eps;
+          // i
+          val_forward = input[startPoint + i_plus*inputDim.x + best_j].x + eps;
+          val_backward = input[startPoint + i_neg*inputDim.x + best_j].x + eps;
+          if(val>0 && val_forward>0 && val_backward>0){
+            val = log(val);
+            val_forward = log(val_forward);
+            val_backward = log(val_backward);
+            denom = (2*val_backward - 4*val + 2*val_forward);
+            if(denom !=0){
+              best_i_float += (val_backward-val_forward)/denom;
+            }
+          }
+          // j
+          val_forward = input[startPoint + best_i*inputDim.x + j_plus].x + eps;
+          val_backward = input[startPoint + best_i*inputDim.x + j_neg].x + eps;
+          if(val>0 && val_forward>0 && val_backward>0){
+            val = log(val);
+            val_forward = log(val_forward);
+            val_backward = log(val_backward);
+            denom = (2*val_backward - 4*val + 2*val_forward);
+            if(denom !=0){
+              best_j_float += (val_backward-val_forward)/denom;
+            }
+          }
         }
-        if(best_j > windowSize/2){
-            best_j = best_j - windowSize;
+        if(best_i_float > windowSize/2){
+            best_i_float = best_i-windowSize;
         }
-        U[gid[1]*outputDim.x + gid[0]] += -best_j;
-        V[gid[1]*outputDim.x + gid[0]] += -best_i;
+        if(best_j_float > windowSize/2){
+            best_j_float = best_j - windowSize;
+        }
+        U[gid[1]*outputDim.x + gid[0]] += -best_j_float;
+        V[gid[1]*outputDim.x + gid[0]] += -best_i_float;
     }
     
     
