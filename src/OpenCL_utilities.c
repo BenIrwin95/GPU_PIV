@@ -1,11 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <CL/cl.h>
-#include "libGPU_FFT.h"
-#include "determineCorrelation.h"
-#include "dataArrangement.h"
-#include "vectorValidation.h"
-#include "OpenCL_utilities.h"
+#include "standardLibraries.h"
+#include "macros.h"
+#include "functions.h"
+#include "globalVars.h"
 
 
 const char* getOpenCLErrorString(cl_int err) {
@@ -92,7 +88,7 @@ cl_int initialise_OpenCL(cl_platform_id *platform, cl_device_id *device_id, cl_c
     *context = clCreateContext(0, 1, device_id, NULL, NULL, &err);
     if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
     // Create a command queue
-    *queue = clCreateCommandQueue(*context, *device_id, 0, &err);
+    *queue = clCreateCommandQueueWithProperties(*context, *device_id, NULL, &err);
     if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
 
 
@@ -101,6 +97,7 @@ cl_int initialise_OpenCL(cl_platform_id *platform, cl_device_id *device_id, cl_c
         0 // Must terminate with 0
     };
     *queueNonBlocking = clCreateCommandQueueWithProperties(*context, *device_id, non_blocking_properties, &err);
+    if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
 
     // Create the compute program from the source buffer
     const char* kernel_sources[] = { kernelSource_complexMaths, kernelSource_FFT_1D, kernelSource_complex_multiply_conjugate_norm, kernelSource_MaxCorr, kernelSource_uniformTiling,kernelSource_vectorValidation};

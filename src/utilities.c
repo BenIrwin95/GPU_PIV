@@ -1,7 +1,7 @@
-#include <stdio.h>    // Required for printf, fprintf, stderr
-#include <stdlib.h>   // provides malloc and free
-#include <time.h>
-
+#include "standardLibraries.h"
+#include "macros.h"
+#include "functions.h"
+#include "globalVars.h"
 
 
 
@@ -29,7 +29,16 @@ void round_float_array(float* A, int N){
 }
 
 
-
+void printComplexArray(cl_float2* input, size_t width, size_t height){
+  printf("\n");
+  for(int i=0;i<height;i++){
+    for(int j=0;j<width;j++){
+      int idx = i*width+j;
+      printf(" (%.2f, %.2f)",input[idx].x, input[idx].y);
+    }
+    printf("\n");
+  }
+}
 
 
 void multiply_double_array_by_scalar(double* arr, int arrSize, double scalar){

@@ -1,11 +1,8 @@
 // standard libraries
-#include <tiffio.h>   // Required for libtiff functions
-#include <stdio.h>    // Required for printf, fprintf, stderr
-#include <stdlib.h>   // Required for malloc, free
-#include <stdint.h>   // Required for uint8_t, uint32_t, uint16_t
-#include <string.h>   // Required for memcpy
-
-#include <CL/cl.h>
+#include "standardLibraries.h"
+#include "macros.h"
+#include "functions.h"
+#include "globalVars.h"
 
 /*readSingleChannelTiff
  * function to read a single-channel (grayscale) tiff file at a specified location and pass its contents into an array

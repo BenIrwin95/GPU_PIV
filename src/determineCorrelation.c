@@ -1,9 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <CL/cl.h>
-#include "libGPU_FFT.h"
-#include "OpenCL_utilities.h"
+#include "standardLibraries.h"
+#include "macros.h"
+#include "functions.h"
+#include "globalVars.h"
 
 
 

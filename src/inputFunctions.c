@@ -1,7 +1,7 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
+#include "standardLibraries.h"
+#include "macros.h"
+#include "functions.h"
+#include "globalVars.h"
 
 
 

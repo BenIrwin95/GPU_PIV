@@ -1,15 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include "OpenCL_utilities.h"
-#include <CL/cl.h>
-
-
-// Macro to find the maximum of two values
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-
-// Macro to find the minimum of two values
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#include "standardLibraries.h"
+#include "macros.h"
+#include "functions.h"
+#include "globalVars.h"
 
 
 

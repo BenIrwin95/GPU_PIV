@@ -1,4 +1,7 @@
-#include <CL/cl.h>
+#include "standardLibraries.h"
+#include "macros.h"
+#include "functions.h"
+#include "globalVars.h"
 
 
 void populateGrid(float* X, float* Y, cl_int2 vecDim,int windowSize, int window_shift){

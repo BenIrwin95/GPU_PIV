@@ -1,35 +1,13 @@
 // standard headers
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <time.h>
-#include <CL/cl.h>
+#include "standardLibraries.h"
+#include "macros.h"
+#include "globalVars.h"
+#include "functions.h"
 // custom headers
-#include "OpenCL_utilities.h"
-#include "tiffFunctions.h" // imports functions for loading and saving tiff images
-#include "utilities.h" // imports miscellaneous functions
-#include "inputFunctions.h" // imports functions for taking inputs from a text file
-#include "determineCorrelation.h" // applies the GPU_FFT library to calcualte correlation
-#include "dataArrangement.h" // for arranging the data in a convenient arrangement for FFT
-#include "gridFunctions.h" // for creating X and Y and interpolating between grids of different sizes
-#include "vectorValidation.h" // for validating and replacing bad vectors
-#include "libGPU_FFT.h"
+
+#define MAX_FILEPATH_LENGTH 256
 
 
-
-#define MAX_FILEPATH_LENGTH 200
-
-
-void printComplexArray(cl_float2* input, size_t width, size_t height){
-    printf("\n");
-    for(int i=0;i<height;i++){
-        for(int j=0;j<width;j++){
-            int idx = i*width+j;
-            printf(" (%.2f, %.2f)",input[idx].x, input[idx].y);
-        }
-        printf("\n");
-    }
-}
 
 
 // main program
@@ -174,7 +152,7 @@ int main(int argc, char* argv[]) {
 
     debug_message("Iterating through frame-pairs", DEBUG_LVL, 0, &currentTime);
     for(int frame=0;frame<N_frames;frame++){
-        char debugMessage[100];
+        char debugMessage[MAX_FILEPATH_LENGTH*2];
         snprintf(debugMessage, sizeof(debugMessage), "----------------------------------------------\nframe-pair: %d of %d", frame+1, N_frames);
         debug_message(debugMessage, DEBUG_LVL, 1, &currentTime);
         char im1_file[MAX_FILEPATH_LENGTH];
