@@ -13,7 +13,6 @@ const char* getOpenCLErrorString(cl_int err);
 
 
 cl_int initialise_OpenCL(OpenCL_env *env);
-//cl_int initialise_OpenCL(cl_platform_id *platform, cl_device_id *device_id, cl_context *context, cl_command_queue *queue, cl_command_queue *queueNonBlocking, cl_program *program,cl_kernel *kernelFFT_1D, cl_kernel *kernelMultConj, cl_kernel *kernelMaxCorr,cl_kernel *kernel_uniformTiling, cl_kernel *kernel_offsetTiling,cl_kernel *kernel_identifyInvalidVectors, cl_kernel *kernel_correctInvalidVectors);
 
 void close_OpenCL(OpenCL_env *env);
 //--------------------------------------------------------------------------------------------------
@@ -88,9 +87,10 @@ int get_tiff_dimensions_single_channel(const char *filepath, uint32_t *width, ui
 //--------------------------------------------------------------------------------------------------
 
 
-void uniformly_tile_data(cl_mem input, cl_int2 inputDim, int windowSize, int windowShift, cl_int2 vecDim, cl_mem output, cl_kernel kernel_uniformTiling, cl_command_queue queue);
 
-void offset_tile_data(cl_mem input, cl_int2 inputDim, int windowSize, int window_shift, cl_mem U_GPU, cl_mem V_GPU, cl_int2 vecDim, cl_mem output, cl_kernel kernel_offsetTiling, cl_command_queue queue);
+void uniformly_tile_data(cl_mem input, cl_int2 inputDim, int windowSize, int window_shift, cl_int2 vecDim, cl_mem output, OpenCL_env *env);
+
+void offset_tile_data(cl_mem input, cl_int2 inputDim, int windowSize, int window_shift, cl_mem U_GPU, cl_mem V_GPU, cl_int2 vecDim, cl_mem output, OpenCL_env *env);
 
 
 //--------------------------------------------------------------------------------------------------
@@ -98,7 +98,7 @@ void offset_tile_data(cl_mem input, cl_int2 inputDim, int windowSize, int window
 //--------------------------------------------------------------------------------------------------
 
 
-void FFT_corr_tiled (cl_mem input1,cl_mem input2, cl_int2 inputDim, int windowSize, cl_kernel kernelFFT_1D, cl_kernel kernelMultiplyConj, cl_command_queue queue);
+void FFT_corr_tiled (cl_mem input1,cl_mem input2, cl_int2 inputDim, int windowSize, OpenCL_env *env);
 
 
 //--------------------------------------------------------------------------------------------------
@@ -115,7 +115,7 @@ void gridInterpolate(float* X_ref, float* Y_ref,float* U_ref, float* V_ref, cl_i
 //--------------------------------------vectorValidation--------------------------------------------
 //--------------------------------------------------------------------------------------------------
 
-void validateVectors(cl_mem X, cl_mem Y, cl_mem U, cl_mem V, cl_mem flags, cl_int2 vecDim, cl_kernel kernel_identifyInvalidVectors, cl_kernel kernel_correctInvalidVectors, cl_command_queue queue);
+void validateVectors(cl_mem X, cl_mem Y, cl_mem U, cl_mem V, cl_mem flags, cl_int2 vecDim, OpenCL_env *env);
 
 
 #endif

@@ -1,7 +1,8 @@
 #include "standardLibraries.h"
 #include "macros.h"
-#include "functions.h"
 #include "globalVars.h"
+#include "functions.h"
+
 
 
 
@@ -84,7 +85,7 @@ __kernel void offset_tiling(__global float2* input, int2 inputDim,
 
 
 
-void uniformly_tile_data(cl_mem input, cl_int2 inputDim, int windowSize, int window_shift, cl_int2 vecDim, cl_mem output, cl_kernel kernel_uniformTiling, cl_command_queue queue){
+void uniformly_tile_data(cl_mem input, cl_int2 inputDim, int windowSize, int window_shift, cl_int2 vecDim, cl_mem output, OpenCL_env *env){
     cl_int err;
 
     cl_int2 strideDim;
@@ -100,22 +101,23 @@ void uniformly_tile_data(cl_mem input, cl_int2 inputDim, int windowSize, int win
     size_t globalSize[2] = {numGroups[0]*localSize[0],numGroups[1]*localSize[1]};
     
     int idx=0;
-    err=clSetKernelArg(kernel_uniformTiling, idx, sizeof(cl_mem), &input); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-    err=clSetKernelArg(kernel_uniformTiling, idx, sizeof(cl_int2), &inputDim); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-    err=clSetKernelArg(kernel_uniformTiling, idx, sizeof(int), &windowSize); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-    err=clSetKernelArg(kernel_uniformTiling, idx, sizeof(cl_int2), &strideDim); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-    err=clSetKernelArg(kernel_uniformTiling, idx, sizeof(cl_mem), &output); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-    err=clSetKernelArg(kernel_uniformTiling, idx, sizeof(cl_int2), &outputDim); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+    err=clSetKernelArg(env->kernel_uniformTiling, idx, sizeof(cl_mem), &input); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+    err=clSetKernelArg(env->kernel_uniformTiling, idx, sizeof(cl_int2), &inputDim); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+    err=clSetKernelArg(env->kernel_uniformTiling, idx, sizeof(int), &windowSize); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+    err=clSetKernelArg(env->kernel_uniformTiling, idx, sizeof(cl_int2), &strideDim); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+    err=clSetKernelArg(env->kernel_uniformTiling, idx, sizeof(cl_mem), &output); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+    err=clSetKernelArg(env->kernel_uniformTiling, idx, sizeof(cl_int2), &outputDim); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
     
-    err=clEnqueueNDRangeKernel(queue, kernel_uniformTiling, 2, NULL, globalSize, localSize,0, NULL, NULL);if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-    err=clFinish(queue);if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+    err=clEnqueueNDRangeKernel(env->queue, env->kernel_uniformTiling, 2, NULL, globalSize, localSize,0, NULL, NULL);if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+    err=clFinish(env->queue);if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
 }
 
 
 
 
+
 // function to call offset_tiling kernel
-void offset_tile_data(cl_mem input, cl_int2 inputDim, int windowSize, int window_shift, cl_mem U_GPU, cl_mem V_GPU, cl_int2 vecDim, cl_mem output, cl_kernel kernel_offsetTiling, cl_command_queue queue){
+void offset_tile_data(cl_mem input, cl_int2 inputDim, int windowSize, int window_shift, cl_mem U_GPU, cl_mem V_GPU, cl_int2 vecDim, cl_mem output, OpenCL_env *env){
     cl_int err;
 
     cl_int2 strideDim;
@@ -131,16 +133,16 @@ void offset_tile_data(cl_mem input, cl_int2 inputDim, int windowSize, int window
     size_t globalSize[2] = {numGroups[0]*localSize[0],numGroups[1]*localSize[1]};
 
     int idx=0;
-    err=clSetKernelArg(kernel_offsetTiling, idx, sizeof(cl_mem), &input); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-    err=clSetKernelArg(kernel_offsetTiling, idx, sizeof(cl_int2), &inputDim); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-    err=clSetKernelArg(kernel_offsetTiling, idx, sizeof(int), &windowSize); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-    err=clSetKernelArg(kernel_offsetTiling, idx, sizeof(cl_int2), &strideDim); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-    err=clSetKernelArg(kernel_offsetTiling, idx, sizeof(cl_mem), &U_GPU); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-    err=clSetKernelArg(kernel_offsetTiling, idx, sizeof(cl_mem), &V_GPU); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-    err=clSetKernelArg(kernel_offsetTiling, idx, sizeof(cl_int2), &vecDim); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-    err=clSetKernelArg(kernel_offsetTiling, idx, sizeof(cl_mem), &output); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-    err=clSetKernelArg(kernel_offsetTiling, idx, sizeof(cl_int2), &outputDim); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+    err=clSetKernelArg(env->kernel_offsetTiling, idx, sizeof(cl_mem), &input); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+    err=clSetKernelArg(env->kernel_offsetTiling, idx, sizeof(cl_int2), &inputDim); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+    err=clSetKernelArg(env->kernel_offsetTiling, idx, sizeof(int), &windowSize); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+    err=clSetKernelArg(env->kernel_offsetTiling, idx, sizeof(cl_int2), &strideDim); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+    err=clSetKernelArg(env->kernel_offsetTiling, idx, sizeof(cl_mem), &U_GPU); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+    err=clSetKernelArg(env->kernel_offsetTiling, idx, sizeof(cl_mem), &V_GPU); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+    err=clSetKernelArg(env->kernel_offsetTiling, idx, sizeof(cl_int2), &vecDim); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+    err=clSetKernelArg(env->kernel_offsetTiling, idx, sizeof(cl_mem), &output); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+    err=clSetKernelArg(env->kernel_offsetTiling, idx, sizeof(cl_int2), &outputDim); idx++;if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
 
-    err=clEnqueueNDRangeKernel(queue, kernel_offsetTiling, 2, NULL, globalSize, localSize,0, NULL, NULL);if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-    err=clFinish(queue);if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+    err=clEnqueueNDRangeKernel(env->queue, env->kernel_offsetTiling, 2, NULL, globalSize, localSize,0, NULL, NULL);if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+    err=clFinish(env->queue);if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
 }

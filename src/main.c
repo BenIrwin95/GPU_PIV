@@ -55,21 +55,7 @@ int main(int argc, char* argv[]) {
     //-----------------------------------OpenCL initialisation--------------------------------------------
     //----------------------------------------------------------------------------------------------------
     debug_message("Initial OpenCL setup", DEBUG_LVL, 0, &currentTime);
-    /*cl_platform_id platform;        // OpenCL platform
-    cl_device_id device_id;           // device ID
-    cl_context context;               // context
-    cl_command_queue queue;           // command queue
-    cl_command_queue queueNonBlocking;           // command queue
-    cl_program program;               // program
-    cl_kernel kernelMultConj;
-    cl_kernel kernelMaxCorr;
-    cl_kernel kernelFFT_1D;
-    cl_kernel kernel_uniformTiling;
-    cl_kernel kernel_offsetTiling;
-    cl_kernel kernel_identifyInvalidVectors;
-    cl_kernel kernel_correctInvalidVectors;*/
     cl_int err;
-    //err = initialise_OpenCL(&platform, &device_id, &context, &queue, &queueNonBlocking, &program, &kernelFFT_1D, &kernelMultConj, &kernelMaxCorr, &kernel_uniformTiling, &kernel_offsetTiling, &kernel_identifyInvalidVectors, &kernel_correctInvalidVectors);
     OpenCL_env env;
     err= initialise_OpenCL(&env);
     if(err!=CL_SUCCESS){
@@ -261,8 +247,8 @@ int main(int argc, char* argv[]) {
             debug_message("Initialising windows", DEBUG_LVL, 3, &currentTime);
 
             debug_message("Copying windows to tiles", DEBUG_LVL, 4, &currentTime);
-            uniformly_tile_data(im1_GPU, imageDim, windowSize, window_shift, vecDim, im1_windows, env.kernel_uniformTiling, env.queue);
-            offset_tile_data(im2_GPU, imageDim, windowSize, window_shift, U_GPU, V_GPU, vecDim, im2_windows, env.kernel_offsetTiling, env.queue);
+            uniformly_tile_data(im1_GPU, imageDim, windowSize, window_shift, vecDim, im1_windows, &env);
+            offset_tile_data(im2_GPU, imageDim, windowSize, window_shift, U_GPU, V_GPU, vecDim, im2_windows, &env);
             err = clFinish(env.queue);
 
             
@@ -271,7 +257,7 @@ int main(int argc, char* argv[]) {
             cl_int2 inputDim;
             inputDim.x = vecDim.x*windowSize;
             inputDim.y = vecDim.y*windowSize;
-            FFT_corr_tiled (im1_windows,im2_windows, inputDim, windowSize, env.kernelFFT_1D, env.kernelMultConj, env.queue);
+            FFT_corr_tiled (im1_windows,im2_windows, inputDim, windowSize, &env);
 
             
 
@@ -294,7 +280,7 @@ int main(int argc, char* argv[]) {
             debug_message("Validating vectors", DEBUG_LVL, 4, &currentTime);
             //validateVectors(X,Y, U, V, vecDim);
             //identifyInvalidVectors(U_GPU, V_GPU, flags_GPU, vecDim, kernel_identifyInvalidVectors, queue);
-            validateVectors(X_GPU, Y_GPU, U_GPU, V_GPU, flags_GPU, vecDim, env.kernel_identifyInvalidVectors, env.kernel_correctInvalidVectors, env.queue);
+            validateVectors(X_GPU, Y_GPU, U_GPU, V_GPU, flags_GPU, vecDim, &env);
             //----------------------------------------------------------------------------------------------------
             //-----------------------------------Saving Results---------------------------------------------------
             //----------------------------------------------------------------------------------------------------
@@ -355,18 +341,8 @@ int main(int argc, char* argv[]) {
     clReleaseMemObject(im1_GPU);clReleaseMemObject(im2_GPU);
     clReleaseMemObject(im1_windows);clReleaseMemObject(im2_windows);
     clReleaseMemObject(flags_GPU);
+
     close_OpenCL(&env);
-    // clReleaseKernel(kernelFFT_1D);
-    // clReleaseKernel(kernelMultConj);
-    // clReleaseKernel(kernelMaxCorr);
-    // clReleaseKernel(kernel_uniformTiling);
-    // clReleaseKernel(kernel_offsetTiling);
-    // clReleaseKernel(kernel_identifyInvalidVectors);
-    // clReleaseKernel(kernel_correctInvalidVectors);
-    // clReleaseProgram(program);
-    // clReleaseCommandQueue(queue);
-    // clReleaseCommandQueue(queueNonBlocking);
-    // clReleaseContext(context);
 
     free(im1_filepath_template);free(im2_filepath_template);free(windowSizes);free(outputFile_template);
     

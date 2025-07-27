@@ -1,7 +1,8 @@
 #include "standardLibraries.h"
 #include "macros.h"
-#include "functions.h"
 #include "globalVars.h"
+#include "functions.h"
+
 
 
 
@@ -107,11 +108,11 @@ const char* kernelSource_MaxCorr = R"(
 
 
 
-void FFT_corr_tiled (cl_mem input1,cl_mem input2, cl_int2 inputDim, int windowSize, cl_kernel kernelFFT_1D, cl_kernel kernelMultiplyConj, cl_command_queue queue){
+void FFT_corr_tiled (cl_mem input1,cl_mem input2, cl_int2 inputDim, int windowSize, OpenCL_env *env){
     cl_int err;
     // determine FFT of both inputs
-    FFT2D_tiled(input1, inputDim, windowSize, 1, kernelFFT_1D, queue);
-    FFT2D_tiled(input2, inputDim, windowSize, 1, kernelFFT_1D, queue);
+    FFT2D_tiled(input1, inputDim, windowSize, 1, env->kernelFFT_1D, env->queue);
+    FFT2D_tiled(input2, inputDim, windowSize, 1, env->kernelFFT_1D, env->queue);
 
 
     // multiply input1 by conjugate of input2
@@ -123,14 +124,14 @@ void FFT_corr_tiled (cl_mem input1,cl_mem input2, cl_int2 inputDim, int windowSi
     size_t numGroups_1D = ceil( (float)totalElements/(float)localSize_1D );
     size_t globalSize_1D = numGroups_1D*localSize_1D;    
     int idx=0;
-    err = clSetKernelArg(kernelMultiplyConj, idx, sizeof(cl_mem), &input1); idx++;      if(err!=CL_SUCCESS){printf("1 %s\n",getOpenCLErrorString(err));}
-    err = clSetKernelArg(kernelMultiplyConj, idx, sizeof(cl_mem), &input2); idx++;      if(err!=CL_SUCCESS){printf("2 %s\n",getOpenCLErrorString(err));}
-    err = clSetKernelArg(kernelMultiplyConj, idx, sizeof(int), &totalElements); idx++;          if(err!=CL_SUCCESS){printf("2 %s\n",getOpenCLErrorString(err));}
-    err = clEnqueueNDRangeKernel(queue, kernelMultiplyConj, 1, NULL, &globalSize_1D, &localSize_1D,0, NULL, NULL);      if(err!=CL_SUCCESS){printf("3 %s\n",getOpenCLErrorString(err));}
-    err = clFinish(queue);      if(err!=CL_SUCCESS){printf("4 %s\n",getOpenCLErrorString(err));}
+    err = clSetKernelArg(env->kernelMultConj, idx, sizeof(cl_mem), &input1); idx++;      if(err!=CL_SUCCESS){printf("1 %s\n",getOpenCLErrorString(err));}
+    err = clSetKernelArg(env->kernelMultConj, idx, sizeof(cl_mem), &input2); idx++;      if(err!=CL_SUCCESS){printf("2 %s\n",getOpenCLErrorString(err));}
+    err = clSetKernelArg(env->kernelMultConj, idx, sizeof(int), &totalElements); idx++;          if(err!=CL_SUCCESS){printf("2 %s\n",getOpenCLErrorString(err));}
+    err = clEnqueueNDRangeKernel(env->queue, env->kernelMultConj, 1, NULL, &globalSize_1D, &localSize_1D,0, NULL, NULL);      if(err!=CL_SUCCESS){printf("3 %s\n",getOpenCLErrorString(err));}
+    err = clFinish(env->queue);      if(err!=CL_SUCCESS){printf("4 %s\n",getOpenCLErrorString(err));}
 
     // determine IFFT of input1
-    FFT2D_tiled(input1, inputDim, windowSize, -1, kernelFFT_1D, queue);
+    FFT2D_tiled(input1, inputDim, windowSize, -1, env->kernelFFT_1D, env->queue);
 
 }
 

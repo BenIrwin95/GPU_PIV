@@ -1,7 +1,8 @@
 #include "standardLibraries.h"
 #include "macros.h"
-#include "functions.h"
 #include "globalVars.h"
+#include "functions.h"
+
 
 
 
@@ -92,7 +93,7 @@ __kernel void correctInvalidVectors(__global float* X,
 
 
 
-void validateVectors(cl_mem X, cl_mem Y, cl_mem U, cl_mem V, cl_mem flags, cl_int2 vecDim, cl_kernel kernel_identifyInvalidVectors, cl_kernel kernel_correctInvalidVectors, cl_command_queue queue){
+void validateVectors(cl_mem X, cl_mem Y, cl_mem U, cl_mem V, cl_mem flags, cl_int2 vecDim, OpenCL_env *env){
   cl_int err;
   size_t localSize_1D = 5;
   size_t totalElements[2] = {vecDim.x, vecDim.y};
@@ -106,23 +107,23 @@ void validateVectors(cl_mem X, cl_mem Y, cl_mem U, cl_mem V, cl_mem flags, cl_in
 
   // identify vectors that need correcting
   int idx=0;
-  err = clSetKernelArg(kernel_identifyInvalidVectors, idx, sizeof(cl_mem), &U); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-  err = clSetKernelArg(kernel_identifyInvalidVectors, idx, sizeof(cl_mem), &V); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-  err = clSetKernelArg(kernel_identifyInvalidVectors, idx, sizeof(cl_mem), &flags); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-  err = clSetKernelArg(kernel_identifyInvalidVectors, idx, sizeof(cl_int2), &vecDim); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-  err = clEnqueueNDRangeKernel(queue, kernel_identifyInvalidVectors, 2, NULL, globalSize, localSize,0, NULL, NULL);      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-  err = clFinish(queue);      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+  err = clSetKernelArg(env->kernel_identifyInvalidVectors, idx, sizeof(cl_mem), &U); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+  err = clSetKernelArg(env->kernel_identifyInvalidVectors, idx, sizeof(cl_mem), &V); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+  err = clSetKernelArg(env->kernel_identifyInvalidVectors, idx, sizeof(cl_mem), &flags); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+  err = clSetKernelArg(env->kernel_identifyInvalidVectors, idx, sizeof(cl_int2), &vecDim); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+  err = clEnqueueNDRangeKernel(env->queue, env->kernel_identifyInvalidVectors, 2, NULL, globalSize, localSize,0, NULL, NULL);      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+  err = clFinish(env->queue);      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
 
   // correct the vectors
   idx=0;
-  err = clSetKernelArg(kernel_correctInvalidVectors, idx, sizeof(cl_mem), &X); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-  err = clSetKernelArg(kernel_correctInvalidVectors, idx, sizeof(cl_mem), &Y); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-  err = clSetKernelArg(kernel_correctInvalidVectors, idx, sizeof(cl_mem), &U); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-  err = clSetKernelArg(kernel_correctInvalidVectors, idx, sizeof(cl_mem), &V); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-  err = clSetKernelArg(kernel_correctInvalidVectors, idx, sizeof(cl_mem), &flags); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-  err = clSetKernelArg(kernel_correctInvalidVectors, idx, sizeof(cl_int2), &vecDim); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-  err = clEnqueueNDRangeKernel(queue, kernel_correctInvalidVectors, 2, NULL, globalSize, localSize,0, NULL, NULL);      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
-  err = clFinish(queue);      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+  err = clSetKernelArg(env->kernel_correctInvalidVectors, idx, sizeof(cl_mem), &X); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+  err = clSetKernelArg(env->kernel_correctInvalidVectors, idx, sizeof(cl_mem), &Y); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+  err = clSetKernelArg(env->kernel_correctInvalidVectors, idx, sizeof(cl_mem), &U); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+  err = clSetKernelArg(env->kernel_correctInvalidVectors, idx, sizeof(cl_mem), &V); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+  err = clSetKernelArg(env->kernel_correctInvalidVectors, idx, sizeof(cl_mem), &flags); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+  err = clSetKernelArg(env->kernel_correctInvalidVectors, idx, sizeof(cl_int2), &vecDim); idx++;      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+  err = clEnqueueNDRangeKernel(env->queue, env->kernel_correctInvalidVectors, 2, NULL, globalSize, localSize,0, NULL, NULL);      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
+  err = clFinish(env->queue);      if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);}
 
 }
 
