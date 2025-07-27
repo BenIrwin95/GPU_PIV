@@ -21,6 +21,15 @@ typedef struct OpenCL_env {
 } OpenCL_env;
 
 
+typedef struct PIVdata {
+    int N_pass;
+    float** X_passes;
+    float** Y_passes;
+    float** U_passes;
+    float** V_passes;
+    cl_int2* vecDim_passes;
+} PIVdata;
+
 
 
 //--------------------------------------------------------------------------------------------------

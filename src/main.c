@@ -67,11 +67,17 @@ int main(int argc, char* argv[]) {
 
     // initialise pointers to hold pointers to each of the arrays generated each pass
     // need so we can interpolate U and V between passes
-    float** X_passes = (float**)malloc(N_pass * sizeof(float*));
-    float** Y_passes = (float**)malloc(N_pass * sizeof(float*));
-    float** U_passes = (float**)malloc(N_pass * sizeof(float*));
-    float** V_passes = (float**)malloc(N_pass * sizeof(float*));
-    cl_int2* vecDim_passes = (cl_int2*)malloc(N_pass * sizeof(cl_int2)); // the dimensions of the arrays in each pass
+    PIVdata piv_data;
+    piv_data.X_passes = (float**)malloc(N_pass * sizeof(float*));
+    piv_data.Y_passes = (float**)malloc(N_pass * sizeof(float*));
+    piv_data.U_passes = (float**)malloc(N_pass * sizeof(float*));
+    piv_data.V_passes = (float**)malloc(N_pass * sizeof(float*));
+    piv_data.vecDim_passes = (cl_int2*)malloc(N_pass * sizeof(cl_int2)); // the dimensions of the arrays in each pass
+    // float** X_passes = (float**)malloc(N_pass * sizeof(float*));
+    // float** Y_passes = (float**)malloc(N_pass * sizeof(float*));
+    // float** U_passes = (float**)malloc(N_pass * sizeof(float*));
+    // float** V_passes = (float**)malloc(N_pass * sizeof(float*));
+    // cl_int2* vecDim_passes = (cl_int2*)malloc(N_pass * sizeof(cl_int2)); // the dimensions of the arrays in each pass
     
     cl_mem* X_GPU_passes = (cl_mem*)malloc(N_pass*sizeof(cl_mem));
     cl_mem* Y_GPU_passes = (cl_mem*)malloc(N_pass*sizeof(cl_mem));
@@ -105,14 +111,14 @@ int main(int argc, char* argv[]) {
         size_t vecSize = vecDim.x*vecDim.y*sizeof(float);
         size_t flagsSize = vecDim.x*vecDim.y*sizeof(int);
         if(flagsSize>flagsSize_max){flagsSize_max=flagsSize;}
-        X_passes[i] = (float*)malloc(vecSize);
-        Y_passes[i] = (float*)malloc(vecSize);
-        U_passes[i] = (float*)malloc(vecSize);
-        V_passes[i] = (float*)malloc(vecSize);
-        vecDim_passes[i]=vecDim;
+        piv_data.X_passes[i] = (float*)malloc(vecSize);
+        piv_data.Y_passes[i] = (float*)malloc(vecSize);
+        piv_data.U_passes[i] = (float*)malloc(vecSize);
+        piv_data.V_passes[i] = (float*)malloc(vecSize);
+        piv_data.vecDim_passes[i]=vecDim;
 
         // populate X and Y
-        populateGrid(X_passes[i], Y_passes[i], vecDim, windowSize, window_shift);
+        populateGrid(piv_data.X_passes[i], piv_data.Y_passes[i], vecDim, windowSize, window_shift);
         
         
         //allocate space for U and V on GPU
@@ -205,15 +211,15 @@ int main(int argc, char* argv[]) {
             int window_shift = (1.0-overlap)*windowSize;
             float dt = 1.0;
             
-            float* X = X_passes[pass];
-            float* Y = Y_passes[pass];
-            float* U = U_passes[pass];
-            float* V = V_passes[pass];
-            cl_int2 vecDim = vecDim_passes[pass];
+            float* X = piv_data.X_passes[pass];
+            float* Y = piv_data.Y_passes[pass];
+            float* U = piv_data.U_passes[pass];
+            float* V = piv_data.V_passes[pass];
+            cl_int2 vecDim = piv_data.vecDim_passes[pass];
 
             // populate U and V with last pass
             if(pass>0){
-                gridInterpolate(X_passes[pass-1], Y_passes[pass-1],U_passes[pass-1], V_passes[pass-1], vecDim_passes[pass-1], X, Y,U, V, vecDim);
+                gridInterpolate(piv_data.X_passes[pass-1], piv_data.Y_passes[pass-1],piv_data.U_passes[pass-1], piv_data.V_passes[pass-1], piv_data.vecDim_passes[pass-1], X, Y,U, V, vecDim);
                 round_float_array(U, vecDim.x*vecDim.y);
                 round_float_array(V, vecDim.x*vecDim.y);
             }
@@ -325,16 +331,16 @@ int main(int argc, char* argv[]) {
     debug_message("Cleaning up", DEBUG_LVL, 3, &currentTime);
     
     for(int i=0;i<N_pass;i++){
-        free(X_passes[i]);
-        free(Y_passes[i]);
-        free(U_passes[i]);
-        free(V_passes[i]);
+        free(piv_data.X_passes[i]);
+        free(piv_data.Y_passes[i]);
+        free(piv_data.U_passes[i]);
+        free(piv_data.V_passes[i]);
         clReleaseMemObject(X_GPU_passes[i]);
         clReleaseMemObject(Y_GPU_passes[i]);
         clReleaseMemObject(U_GPU_passes[i]);
         clReleaseMemObject(V_GPU_passes[i]);
     }
-    free(X_passes);free(Y_passes);free(U_passes);free(V_passes);free(vecDim_passes);
+    free(piv_data.X_passes);free(piv_data.Y_passes);free(piv_data.U_passes);free(piv_data.V_passes);free(piv_data.vecDim_passes);
     free(X_GPU_passes);free(Y_GPU_passes);free(U_GPU_passes);free(V_GPU_passes);
 
     
