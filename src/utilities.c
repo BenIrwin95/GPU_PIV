@@ -1,7 +1,8 @@
 #include "standardLibraries.h"
 #include "macros.h"
-#include "functions.h"
 #include "globalVars.h"
+#include "functions.h"
+
 
 
 
@@ -53,3 +54,29 @@ void multiply_float_array_by_scalar(float* arr, int arrSize, float scalar){
     arr[i] = arr[i]*scalar;
   }
 }
+
+void initialisePIVdataMemory(PIVdata *piv_data){
+  piv_data->X_passes = (float**)malloc(piv_data->N_pass * sizeof(float*));
+  piv_data->Y_passes = (float**)malloc(piv_data->N_pass * sizeof(float*));
+  piv_data->U_passes = (float**)malloc(piv_data->N_pass * sizeof(float*));
+  piv_data->V_passes = (float**)malloc(piv_data->N_pass * sizeof(float*));
+  piv_data->vecDim_passes = (cl_int2*)malloc(piv_data->N_pass * sizeof(cl_int2)); // the dimensions of the arrays in each pass
+}
+
+
+
+void freePIVdata(PIVdata *piv_data){
+  for(int i=0;i<piv_data->N_pass;i++){
+    free(piv_data->X_passes[i]);
+    free(piv_data->Y_passes[i]);
+    free(piv_data->U_passes[i]);
+    free(piv_data->V_passes[i]);
+  }
+  free(piv_data->X_passes);
+  free(piv_data->Y_passes);
+  free(piv_data->U_passes);
+  free(piv_data->V_passes);
+  free(piv_data->vecDim_passes);
+  free(piv_data->windowSizes);
+}
+

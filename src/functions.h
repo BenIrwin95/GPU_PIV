@@ -32,6 +32,8 @@ void printComplexArray(cl_float2* input, size_t width, size_t height);
 void multiply_double_array_by_scalar(double* arr, int arrSize, double scalar);
 void multiply_float_array_by_scalar(float* arr, int arrSize, float scalar);
 
+void initialisePIVdataMemory(PIVdata *piv_data);
+void freePIVdata(PIVdata *piv_data);
 
 //--------------------------------------------------------------------------------------------------
 //--------------------------------------inputFunctions----------------------------------------------

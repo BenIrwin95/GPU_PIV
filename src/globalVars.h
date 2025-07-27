@@ -28,6 +28,7 @@ typedef struct PIVdata {
     float** U_passes;
     float** V_passes;
     cl_int2* vecDim_passes;
+    int* windowSizes;
 } PIVdata;
 
 

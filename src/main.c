@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
         return 1; // Indicate an error
     }
 
-
+    PIVdata piv_data;
 
 
     clock_t currentTime = clock();
@@ -36,16 +36,16 @@ int main(int argc, char* argv[]) {
     int im2_frame_start = extract_int_by_keyword(inputFile, "IM2_FRAME_START", &status);
     int im2_frame_step = extract_int_by_keyword(inputFile, "IM2_FRAME_STEP", &status);
 
-    int N_pass = extract_int_by_keyword(inputFile, "N_PASS", &status);
+    piv_data.N_pass = extract_int_by_keyword(inputFile, "N_PASS", &status);
 
-    int* windowSizes = find_int_list_after_keyword(inputFile, "WINDOW_SIZE", N_pass, &status);
+    piv_data.windowSizes = find_int_list_after_keyword(inputFile, "WINDOW_SIZE", piv_data.N_pass, &status);
 
 
     char *outputFile_template = find_line_after_keyword(inputFile, "OUTPUT_TEMPLATE", &status);
 
     if(status == 1){
         printf("ERROR: Something went wrong loading the input file\n");
-        free(im1_filepath_template);free(im2_filepath_template);free(windowSizes);free(outputFile_template);
+        free(im1_filepath_template);free(im2_filepath_template);free(piv_data.windowSizes);free(outputFile_template);
         return 1;
     }
 
@@ -67,22 +67,13 @@ int main(int argc, char* argv[]) {
 
     // initialise pointers to hold pointers to each of the arrays generated each pass
     // need so we can interpolate U and V between passes
-    PIVdata piv_data;
-    piv_data.X_passes = (float**)malloc(N_pass * sizeof(float*));
-    piv_data.Y_passes = (float**)malloc(N_pass * sizeof(float*));
-    piv_data.U_passes = (float**)malloc(N_pass * sizeof(float*));
-    piv_data.V_passes = (float**)malloc(N_pass * sizeof(float*));
-    piv_data.vecDim_passes = (cl_int2*)malloc(N_pass * sizeof(cl_int2)); // the dimensions of the arrays in each pass
-    // float** X_passes = (float**)malloc(N_pass * sizeof(float*));
-    // float** Y_passes = (float**)malloc(N_pass * sizeof(float*));
-    // float** U_passes = (float**)malloc(N_pass * sizeof(float*));
-    // float** V_passes = (float**)malloc(N_pass * sizeof(float*));
-    // cl_int2* vecDim_passes = (cl_int2*)malloc(N_pass * sizeof(cl_int2)); // the dimensions of the arrays in each pass
+    initialisePIVdataMemory(&piv_data);
+
     
-    cl_mem* X_GPU_passes = (cl_mem*)malloc(N_pass*sizeof(cl_mem));
-    cl_mem* Y_GPU_passes = (cl_mem*)malloc(N_pass*sizeof(cl_mem));
-    cl_mem* U_GPU_passes = (cl_mem*)malloc(N_pass*sizeof(cl_mem));
-    cl_mem* V_GPU_passes = (cl_mem*)malloc(N_pass*sizeof(cl_mem));
+    cl_mem* X_GPU_passes = (cl_mem*)malloc(piv_data.N_pass*sizeof(cl_mem));
+    cl_mem* Y_GPU_passes = (cl_mem*)malloc(piv_data.N_pass*sizeof(cl_mem));
+    cl_mem* U_GPU_passes = (cl_mem*)malloc(piv_data.N_pass*sizeof(cl_mem));
+    cl_mem* V_GPU_passes = (cl_mem*)malloc(piv_data.N_pass*sizeof(cl_mem));
 
 
 
@@ -94,8 +85,8 @@ int main(int argc, char* argv[]) {
     snprintf(temp_file, sizeof(temp_file),im1_filepath_template, im1_frame_start);
     uint32_t temp_width, temp_height;
     get_tiff_dimensions_single_channel(temp_file, &temp_width, &temp_height);
-    for(int i=0;i<N_pass;i++){
-        int windowSize = windowSizes[i];
+    for(int i=0;i<piv_data.N_pass;i++){
+        int windowSize = piv_data.windowSizes[i];
         double overlap = 0.5;
         int window_shift = (1.0-overlap)*windowSize;
         cl_int2 vecDim;
@@ -197,8 +188,8 @@ int main(int argc, char* argv[]) {
             return 1; // Indicate failure
         }
 
-        for(int pass=0;pass<N_pass;pass++){
-            snprintf(debugMessage, sizeof(debugMessage), "Pass %d of %d (window size: %d)",pass+1, N_pass, windowSizes[pass]);
+        for(int pass=0;pass<piv_data.N_pass;pass++){
+            snprintf(debugMessage, sizeof(debugMessage), "Pass %d of %d (window size: %d)",pass+1, piv_data.N_pass, piv_data.windowSizes[pass]);
             debug_message(debugMessage, DEBUG_LVL, 2, &currentTime);
             //----------------------------------------------------------------------------------------------------
             //-------------------------------Initialising PIV variables-------------------------------------------
@@ -206,7 +197,7 @@ int main(int argc, char* argv[]) {
             
             debug_message("Initialising PIV variables", DEBUG_LVL, 3, &currentTime);
             // determine how many windows will fit across the images
-            int windowSize = windowSizes[pass];
+            int windowSize = piv_data.windowSizes[pass];
             double overlap = 0.5;
             int window_shift = (1.0-overlap)*windowSize;
             float dt = 1.0;
@@ -301,8 +292,8 @@ int main(int argc, char* argv[]) {
             multiply_float_array_by_scalar(V, vecDim.x*vecDim.y, 1/dt);
 
 
-            fprintf(fp, "Pass %d of %d\n", pass+1, N_pass);
-            fprintf(fp, "Window size %d\n", windowSizes[pass]);
+            fprintf(fp, "Pass %d of %d\n", pass+1, piv_data.N_pass);
+            fprintf(fp, "Window size %d\n", piv_data.windowSizes[pass]);
             fprintf(fp, "Rows %d\n", vecDim.y);
             fprintf(fp, "Cols %d\n", vecDim.x);
             fprintf(fp, "image_x,image_y,U,V\n");
@@ -330,19 +321,15 @@ int main(int argc, char* argv[]) {
 
     debug_message("Cleaning up", DEBUG_LVL, 3, &currentTime);
     
-    for(int i=0;i<N_pass;i++){
-        free(piv_data.X_passes[i]);
-        free(piv_data.Y_passes[i]);
-        free(piv_data.U_passes[i]);
-        free(piv_data.V_passes[i]);
+    for(int i=0;i<piv_data.N_pass;i++){
         clReleaseMemObject(X_GPU_passes[i]);
         clReleaseMemObject(Y_GPU_passes[i]);
         clReleaseMemObject(U_GPU_passes[i]);
         clReleaseMemObject(V_GPU_passes[i]);
     }
-    free(piv_data.X_passes);free(piv_data.Y_passes);free(piv_data.U_passes);free(piv_data.V_passes);free(piv_data.vecDim_passes);
-    free(X_GPU_passes);free(Y_GPU_passes);free(U_GPU_passes);free(V_GPU_passes);
 
+    free(X_GPU_passes);free(Y_GPU_passes);free(U_GPU_passes);free(V_GPU_passes);
+    freePIVdata(&piv_data);
     
     clReleaseMemObject(im1_GPU);clReleaseMemObject(im2_GPU);
     clReleaseMemObject(im1_windows);clReleaseMemObject(im2_windows);
@@ -350,7 +337,7 @@ int main(int argc, char* argv[]) {
 
     close_OpenCL(&env);
 
-    free(im1_filepath_template);free(im2_filepath_template);free(windowSizes);free(outputFile_template);
+    free(im1_filepath_template);free(im2_filepath_template);free(outputFile_template);
     
     debug_message("Program Complete", DEBUG_LVL, 0, &currentTime);
     return 0;
