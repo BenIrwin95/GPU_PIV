@@ -358,6 +358,8 @@ int main(int argc, char* argv[]) {
     clReleaseKernel(kernelMaxCorr);
     clReleaseKernel(kernel_uniformTiling);
     clReleaseKernel(kernel_offsetTiling);
+    clReleaseKernel(kernel_identifyInvalidVectors);
+    clReleaseKernel(kernel_correctInvalidVectors);
     clReleaseProgram(program);
     clReleaseCommandQueue(queue);
     clReleaseCommandQueue(queueNonBlocking);
