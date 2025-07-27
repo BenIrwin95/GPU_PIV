@@ -124,9 +124,9 @@ const char* kernelSource_MaxCorr = R"(
           if(val>0.0f && val_forward>0.0f && val_backward>0.0f){
             val_forward = log(val_forward);
             val_backward = log(val_backward);
-            denom = (2*val_backward - 4*log_val + 2*val_forward);
+            denom = (2.0*val_backward - 4.0*log_val + 2.0*val_forward);
             if(fabs(denom) >1e-9f){
-              //best_j_float+=(val_backward-val_forward)/denom;
+              best_j_float+=(val_backward-val_forward)/denom;
             }
           }
         }
