@@ -177,7 +177,7 @@ def generate_displaced_image(width, height, original_x_coords, original_y_coords
 # --- User-defined parameters ---
 IMAGE_WIDTH = 2023
 IMAGE_HEIGHT = 2023
-NUM_PARTICLES = 20000
+NUM_PARTICLES = 40000
 PARTICLE_SIZE = 7 # Increased particle size to better show Gaussian effect
 PARTICLE_SIGMA = 1.5 # Standard deviation for Gaussian (adjust to change spread)
 
