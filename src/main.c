@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
     //-----------------------------------OpenCL initialisation--------------------------------------------
     //----------------------------------------------------------------------------------------------------
     debug_message("Initial OpenCL setup", DEBUG_LVL, 0, &currentTime);
-    cl_platform_id platform;        // OpenCL platform
+    /*cl_platform_id platform;        // OpenCL platform
     cl_device_id device_id;           // device ID
     cl_context context;               // context
     cl_command_queue queue;           // command queue
@@ -67,9 +67,11 @@ int main(int argc, char* argv[]) {
     cl_kernel kernel_uniformTiling;
     cl_kernel kernel_offsetTiling;
     cl_kernel kernel_identifyInvalidVectors;
-    cl_kernel kernel_correctInvalidVectors;
+    cl_kernel kernel_correctInvalidVectors;*/
     cl_int err;
-    err = initialise_OpenCL(&platform, &device_id, &context, &queue, &queueNonBlocking, &program, &kernelFFT_1D, &kernelMultConj, &kernelMaxCorr, &kernel_uniformTiling, &kernel_offsetTiling, &kernel_identifyInvalidVectors, &kernel_correctInvalidVectors);
+    //err = initialise_OpenCL(&platform, &device_id, &context, &queue, &queueNonBlocking, &program, &kernelFFT_1D, &kernelMultConj, &kernelMaxCorr, &kernel_uniformTiling, &kernel_offsetTiling, &kernel_identifyInvalidVectors, &kernel_correctInvalidVectors);
+    OpenCL_env env;
+    err= initialise_OpenCL(&env);
     if(err!=CL_SUCCESS){
       return 1;
     }
@@ -128,25 +130,25 @@ int main(int argc, char* argv[]) {
         
         
         //allocate space for U and V on GPU
-        X_GPU_passes[i] = clCreateBuffer(context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
-        Y_GPU_passes[i] = clCreateBuffer(context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
-        U_GPU_passes[i] = clCreateBuffer(context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
-        V_GPU_passes[i] = clCreateBuffer(context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
+        X_GPU_passes[i] = clCreateBuffer(env.context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
+        Y_GPU_passes[i] = clCreateBuffer(env.context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
+        U_GPU_passes[i] = clCreateBuffer(env.context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
+        V_GPU_passes[i] = clCreateBuffer(env.context, CL_MEM_READ_WRITE, vecSize, NULL, &err);
 
     }
 
 
     // create a buffer for flags (needed for vector validation)
-    cl_mem flags_GPU = clCreateBuffer(context, CL_MEM_READ_WRITE, flagsSize_max, NULL, &err);
+    cl_mem flags_GPU = clCreateBuffer(env.context, CL_MEM_READ_WRITE, flagsSize_max, NULL, &err);
 
     // image buffers
     cl_int2 imageDim;
     imageDim.x=temp_width;imageDim.y=temp_height;
     size_t imageBytes = imageDim.x*imageDim.y*sizeof(cl_float2);
-    cl_mem im1_GPU = clCreateBuffer(context, CL_MEM_READ_ONLY, imageBytes, NULL, &err); // we assume our image size will be constant and thus assign a buffer in advance for frames
-    cl_mem im2_GPU = clCreateBuffer(context, CL_MEM_READ_ONLY, imageBytes, NULL, &err);
-    cl_mem im1_windows = clCreateBuffer(context, CL_MEM_READ_WRITE, maxTiledInputSize, NULL, &err); // the buffer that will hold all the windowed parts of the image during a pass
-    cl_mem im2_windows = clCreateBuffer(context, CL_MEM_READ_WRITE, maxTiledInputSize, NULL, &err); // allocate space based on the max expected size, during each pass we just use as much as we need
+    cl_mem im1_GPU = clCreateBuffer(env.context, CL_MEM_READ_ONLY, imageBytes, NULL, &err); // we assume our image size will be constant and thus assign a buffer in advance for frames
+    cl_mem im2_GPU = clCreateBuffer(env.context, CL_MEM_READ_ONLY, imageBytes, NULL, &err);
+    cl_mem im1_windows = clCreateBuffer(env.context, CL_MEM_READ_WRITE, maxTiledInputSize, NULL, &err); // the buffer that will hold all the windowed parts of the image during a pass
+    cl_mem im2_windows = clCreateBuffer(env.context, CL_MEM_READ_WRITE, maxTiledInputSize, NULL, &err); // allocate space based on the max expected size, during each pass we just use as much as we need
 
 
 
@@ -177,8 +179,8 @@ int main(int argc, char* argv[]) {
 
 
         // load the images to GPU
-        err = clEnqueueWriteBuffer( queue, im1_GPU, CL_TRUE, 0, imageBytes, im1, 0, NULL, NULL );
-        err = clEnqueueWriteBuffer( queue, im2_GPU, CL_TRUE, 0, imageBytes, im2, 0, NULL, NULL );
+        err = clEnqueueWriteBuffer( env.queue, im1_GPU, CL_TRUE, 0, imageBytes, im1, 0, NULL, NULL );
+        err = clEnqueueWriteBuffer( env.queue, im2_GPU, CL_TRUE, 0, imageBytes, im2, 0, NULL, NULL );
         free(im1);free(im2);
 
 
@@ -237,8 +239,8 @@ int main(int argc, char* argv[]) {
             cl_mem V_GPU = V_GPU_passes[pass];
             size_t vec_bytes = vecDim.x*vecDim.y*sizeof(float);
 
-            err = clEnqueueWriteBuffer( queue, X_GPU, CL_TRUE, 0, vec_bytes, X, 0, NULL, NULL );
-            err = clEnqueueWriteBuffer( queue, Y_GPU, CL_TRUE, 0, vec_bytes, Y, 0, NULL, NULL );
+            err = clEnqueueWriteBuffer( env.queue, X_GPU, CL_TRUE, 0, vec_bytes, X, 0, NULL, NULL );
+            err = clEnqueueWriteBuffer( env.queue, Y_GPU, CL_TRUE, 0, vec_bytes, Y, 0, NULL, NULL );
 
 
             // fill with zeros
@@ -246,11 +248,11 @@ int main(int argc, char* argv[]) {
             if(pass==0){
                 float zero_float_pattern = 0.0f;
                 size_t pattern_size = sizeof(float);
-                err = clEnqueueFillBuffer(queue, U_GPU, &zero_float_pattern, pattern_size, 0, vec_bytes, 0, NULL, NULL);
-                err = clEnqueueFillBuffer(queue, V_GPU, &zero_float_pattern, pattern_size, 0, vec_bytes, 0, NULL, NULL);
+                err = clEnqueueFillBuffer(env.queue, U_GPU, &zero_float_pattern, pattern_size, 0, vec_bytes, 0, NULL, NULL);
+                err = clEnqueueFillBuffer(env.queue, V_GPU, &zero_float_pattern, pattern_size, 0, vec_bytes, 0, NULL, NULL);
             } else {
-                err = clEnqueueWriteBuffer( queue, U_GPU, CL_TRUE, 0, vec_bytes, U, 0, NULL, NULL );
-                err = clEnqueueWriteBuffer( queue, V_GPU, CL_TRUE, 0, vec_bytes, V, 0, NULL, NULL );
+                err = clEnqueueWriteBuffer( env.queue, U_GPU, CL_TRUE, 0, vec_bytes, U, 0, NULL, NULL );
+                err = clEnqueueWriteBuffer( env.queue, V_GPU, CL_TRUE, 0, vec_bytes, V, 0, NULL, NULL );
             }
 
             //----------------------------------------------------------------------------------------------------
@@ -259,9 +261,9 @@ int main(int argc, char* argv[]) {
             debug_message("Initialising windows", DEBUG_LVL, 3, &currentTime);
 
             debug_message("Copying windows to tiles", DEBUG_LVL, 4, &currentTime);
-            uniformly_tile_data(im1_GPU, imageDim, windowSize, window_shift, vecDim, im1_windows, kernel_uniformTiling, queue);
-            offset_tile_data(im2_GPU, imageDim, windowSize, window_shift, U_GPU, V_GPU, vecDim, im2_windows, kernel_offsetTiling, queue);
-            err = clFinish(queue);
+            uniformly_tile_data(im1_GPU, imageDim, windowSize, window_shift, vecDim, im1_windows, env.kernel_uniformTiling, env.queue);
+            offset_tile_data(im2_GPU, imageDim, windowSize, window_shift, U_GPU, V_GPU, vecDim, im2_windows, env.kernel_offsetTiling, env.queue);
+            err = clFinish(env.queue);
 
             
             // find correlations
@@ -269,7 +271,7 @@ int main(int argc, char* argv[]) {
             cl_int2 inputDim;
             inputDim.x = vecDim.x*windowSize;
             inputDim.y = vecDim.y*windowSize;
-            FFT_corr_tiled (im1_windows,im2_windows, inputDim, windowSize, kernelFFT_1D, kernelMultConj, queue);
+            FFT_corr_tiled (im1_windows,im2_windows, inputDim, windowSize, env.kernelFFT_1D, env.kernelMultConj, env.queue);
 
             
 
@@ -279,28 +281,28 @@ int main(int argc, char* argv[]) {
             size_t numGroups[2] = {vecDim.x, vecDim.y};
             size_t globalSize[2] = {numGroups[0]*localSize[0],numGroups[1]*localSize[1]};
             int idx=0;
-            err = clSetKernelArg(kernelMaxCorr, idx, sizeof(cl_mem), &im1_windows); idx++;
-            err = clSetKernelArg(kernelMaxCorr, idx, sizeof(cl_int2), &inputDim); idx++;
-            err = clSetKernelArg(kernelMaxCorr, idx, sizeof(int), &windowSize); idx++;
-            err = clSetKernelArg(kernelMaxCorr, idx, sizeof(cl_mem), &U_GPU); idx++;
-            err = clSetKernelArg(kernelMaxCorr, idx, sizeof(cl_mem), &V_GPU); idx++;
-            err = clSetKernelArg(kernelMaxCorr, idx, sizeof(cl_int2), &vecDim); idx++;
-            err=clEnqueueNDRangeKernel(queue, kernelMaxCorr, 2, NULL, globalSize, localSize,0, NULL, NULL);
-            err = clFinish(queue);
+            err = clSetKernelArg(env.kernelMaxCorr, idx, sizeof(cl_mem), &im1_windows); idx++;
+            err = clSetKernelArg(env.kernelMaxCorr, idx, sizeof(cl_int2), &inputDim); idx++;
+            err = clSetKernelArg(env.kernelMaxCorr, idx, sizeof(int), &windowSize); idx++;
+            err = clSetKernelArg(env.kernelMaxCorr, idx, sizeof(cl_mem), &U_GPU); idx++;
+            err = clSetKernelArg(env.kernelMaxCorr, idx, sizeof(cl_mem), &V_GPU); idx++;
+            err = clSetKernelArg(env.kernelMaxCorr, idx, sizeof(cl_int2), &vecDim); idx++;
+            err=clEnqueueNDRangeKernel(env.queue, env.kernelMaxCorr, 2, NULL, globalSize, localSize,0, NULL, NULL);
+            err = clFinish(env.queue);
 
           
             debug_message("Validating vectors", DEBUG_LVL, 4, &currentTime);
             //validateVectors(X,Y, U, V, vecDim);
             //identifyInvalidVectors(U_GPU, V_GPU, flags_GPU, vecDim, kernel_identifyInvalidVectors, queue);
-            validateVectors(X_GPU, Y_GPU, U_GPU, V_GPU, flags_GPU, vecDim, kernel_identifyInvalidVectors, kernel_correctInvalidVectors, queue);
+            validateVectors(X_GPU, Y_GPU, U_GPU, V_GPU, flags_GPU, vecDim, env.kernel_identifyInvalidVectors, env.kernel_correctInvalidVectors, env.queue);
             //----------------------------------------------------------------------------------------------------
             //-----------------------------------Saving Results---------------------------------------------------
             //----------------------------------------------------------------------------------------------------
             debug_message("Saving Results", DEBUG_LVL, 3, &currentTime);
 
             // Read the results from the device
-            clEnqueueReadBuffer(queue, U_GPU, CL_TRUE, 0, vec_bytes, U, 0, NULL, NULL );
-            clEnqueueReadBuffer(queue, V_GPU, CL_TRUE, 0, vec_bytes, V, 0, NULL, NULL );
+            clEnqueueReadBuffer(env.queue, U_GPU, CL_TRUE, 0, vec_bytes, U, 0, NULL, NULL );
+            clEnqueueReadBuffer(env.queue, V_GPU, CL_TRUE, 0, vec_bytes, V, 0, NULL, NULL );
 
             // convert the pixel displacements to velocity
             multiply_float_array_by_scalar(U, vecDim.x*vecDim.y, 1/dt);
@@ -353,17 +355,18 @@ int main(int argc, char* argv[]) {
     clReleaseMemObject(im1_GPU);clReleaseMemObject(im2_GPU);
     clReleaseMemObject(im1_windows);clReleaseMemObject(im2_windows);
     clReleaseMemObject(flags_GPU);
-    clReleaseKernel(kernelFFT_1D);
-    clReleaseKernel(kernelMultConj);
-    clReleaseKernel(kernelMaxCorr);
-    clReleaseKernel(kernel_uniformTiling);
-    clReleaseKernel(kernel_offsetTiling);
-    clReleaseKernel(kernel_identifyInvalidVectors);
-    clReleaseKernel(kernel_correctInvalidVectors);
-    clReleaseProgram(program);
-    clReleaseCommandQueue(queue);
-    clReleaseCommandQueue(queueNonBlocking);
-    clReleaseContext(context);
+    close_OpenCL(&env);
+    // clReleaseKernel(kernelFFT_1D);
+    // clReleaseKernel(kernelMultConj);
+    // clReleaseKernel(kernelMaxCorr);
+    // clReleaseKernel(kernel_uniformTiling);
+    // clReleaseKernel(kernel_offsetTiling);
+    // clReleaseKernel(kernel_identifyInvalidVectors);
+    // clReleaseKernel(kernel_correctInvalidVectors);
+    // clReleaseProgram(program);
+    // clReleaseCommandQueue(queue);
+    // clReleaseCommandQueue(queueNonBlocking);
+    // clReleaseContext(context);
 
     free(im1_filepath_template);free(im2_filepath_template);free(windowSizes);free(outputFile_template);
     

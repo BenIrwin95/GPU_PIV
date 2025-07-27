@@ -1,7 +1,8 @@
 #include "standardLibraries.h"
 #include "macros.h"
-#include "functions.h"
 #include "globalVars.h"
+#include "functions.h"
+
 
 
 const char* getOpenCLErrorString(cl_int err) {
@@ -74,6 +75,84 @@ const char* getOpenCLErrorString(cl_int err) {
 
 
 
+
+
+cl_int initialise_OpenCL(OpenCL_env *env){
+    cl_int err;
+    // Bind to platform
+    err = clGetPlatformIDs(1, &(env->platform), NULL);
+    if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
+    // Get ID for the device
+    err = clGetDeviceIDs(env->platform, CL_DEVICE_TYPE_GPU, 1, &(env->device_id), NULL);
+    if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
+    // Create a context
+    env->context = clCreateContext(0, 1, &(env->device_id), NULL, NULL, &err);
+    if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
+    // Create a command queue
+    env->queue = clCreateCommandQueueWithProperties(env->context, env->device_id, NULL, &err);
+    if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
+
+
+    cl_queue_properties non_blocking_properties[] = {
+        CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
+        0 // Must terminate with 0
+    };
+    env->queueNonBlocking = clCreateCommandQueueWithProperties(env->context, env->device_id, non_blocking_properties, &err);
+    if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
+
+    // Create the compute program from the source buffer
+    const char* kernel_sources[] = { kernelSource_complexMaths, kernelSource_FFT_1D, kernelSource_complex_multiply_conjugate_norm, kernelSource_MaxCorr, kernelSource_uniformTiling,kernelSource_vectorValidation};
+    env->program = clCreateProgramWithSource(env->context, 6, kernel_sources, NULL, &err);
+    //free(kernel_sources);
+    if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
+    // Build the program executable
+    err = clBuildProgram(env->program, 1, &(env->device_id), NULL, NULL, NULL);
+    if(err != CL_SUCCESS){ // handling errors when compiling the kernel
+        size_t log_size;
+        clGetProgramBuildInfo(env->program, env->device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+        char *build_log = (char *) malloc(log_size + 1); // +1 for null terminator
+        // Get the log
+        clGetProgramBuildInfo(env->program, env->device_id, CL_PROGRAM_BUILD_LOG, log_size, build_log, NULL);
+        build_log[log_size] = '\0'; // Null-terminate
+        fprintf(stderr, "Kernel Build Error:\n%s\n", build_log);
+        free(build_log);
+    }
+    // Create the compute kernel in the program
+    env->kernelMultConj = clCreateKernel(env->program, "complex_multiply_conjugate_norm", &err);
+    if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
+    env->kernelMaxCorr = clCreateKernel(env->program, "findMaxCorr", &err);
+    if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
+    env->kernelFFT_1D = clCreateKernel(env->program, "FFT_1D", &err);
+    if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
+    env->kernel_uniformTiling = clCreateKernel(env->program, "uniform_tiling", &err);
+    if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
+    env->kernel_offsetTiling = clCreateKernel(env->program, "offset_tiling", &err);
+    if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
+    env->kernel_identifyInvalidVectors = clCreateKernel(env->program, "identifyInvalidVectors", &err);
+    if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
+    env->kernel_correctInvalidVectors = clCreateKernel(env->program, "correctInvalidVectors", &err);
+    if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
+    return CL_SUCCESS;
+}
+
+
+
+
+void close_OpenCL(OpenCL_env *env){
+    clReleaseKernel(env->kernelFFT_1D);
+    clReleaseKernel(env->kernelMultConj);
+    clReleaseKernel(env->kernelMaxCorr);
+    clReleaseKernel(env->kernel_uniformTiling);
+    clReleaseKernel(env->kernel_offsetTiling);
+    clReleaseKernel(env->kernel_identifyInvalidVectors);
+    clReleaseKernel(env->kernel_correctInvalidVectors);
+    clReleaseProgram(env->program);
+    clReleaseCommandQueue(env->queue);
+    clReleaseCommandQueue(env->queueNonBlocking);
+    clReleaseContext(env->context);
+}
+
+/*
 cl_int initialise_OpenCL(cl_platform_id *platform, cl_device_id *device_id, cl_context *context, cl_command_queue *queue, cl_command_queue *queueNonBlocking, cl_program *program, 
                           cl_kernel *kernelFFT_1D, cl_kernel *kernelMultConj, cl_kernel *kernelMaxCorr, cl_kernel *kernel_uniformTiling, cl_kernel *kernel_offsetTiling,
                          cl_kernel *kernel_identifyInvalidVectors, cl_kernel *kernel_correctInvalidVectors){
@@ -133,3 +212,4 @@ cl_int initialise_OpenCL(cl_platform_id *platform, cl_device_id *device_id, cl_c
     if(err!=CL_SUCCESS){ERROR_MSG_OPENCL(err);return err;}
     return CL_SUCCESS;
 }
+*/
