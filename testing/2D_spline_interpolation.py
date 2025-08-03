@@ -80,10 +80,32 @@ Z_control = solve(A, Z_ref.flatten())
 Z_control=np.reshape(Z_control,np.shape(X_control))
 
 n_interp=50
-u_interp = np.linspace(0,1,n_interp)
-v_interp = np.linspace(0,1,n_interp)
+u_interp = np.linspace(-0.1,1.1,n_interp)
+v_interp = np.linspace(-0.1,1.1,n_interp)
 U_interp, V_interp = np.meshgrid(u_interp, v_interp)
 z_interp = np.zeros((n_interp,n_interp))
+
+
+def eval_spline(u, v, Z_control, degree, u_knots, v_knots, nx, ny):
+    z = 0.0
+    for ii in range(ny):
+        for jj in range(nx):
+            z += Z_control[ii, jj] * Bspline_coeffs(u, jj, degree, u_knots) * Bspline_coeffs(v, ii, degree, v_knots)
+    return z
+
+def eval_spline_and_derivatives(u, v, Z_control, degree, u_knots, v_knots, nx, ny, du=1e-5, dv=1e-5):
+    z = eval_spline(u, v, Z_control, degree, u_knots, v_knots, nx, ny)
+    u_plus = min([u+du,1])
+    u_neg = max([u-du,0])
+    du = u_plus-u_neg
+    z_u = (eval_spline(u_plus, v, Z_control, degree, u_knots, v_knots, nx, ny) -
+           eval_spline(u_neg, v, Z_control, degree, u_knots, v_knots, nx, ny)) / (du)
+    v_plus = min([v+dv,1])
+    v_neg = max([v-dv,0])
+    dv = v_plus-v_neg
+    z_v = (eval_spline(u, v_plus, Z_control, degree, u_knots, v_knots, nx, ny) -
+           eval_spline(u, v_neg, Z_control, degree, u_knots, v_knots, nx, ny)) / (dv)
+    return z, z_u, z_v
 
 
 
@@ -93,15 +115,24 @@ for i in range(0,n_interp):
     for j in range(0,n_interp):
         u = u_interp[j]
         v = v_interp[i]
-        for ii in range(0,ny):
-            for jj in range(0,nx):
-                z_interp[i,j] += Z_control[ii,jj] * Bspline_coeffs(u, jj, degree, u_knots)*Bspline_coeffs(v, ii, degree, v_knots)
+        if( 0 <= u <= 1 and 0 <= v <= 1):
+            for ii in range(0,ny):
+                for jj in range(0,nx):
+                    z_interp[i,j] += Z_control[ii,jj] * Bspline_coeffs(u, jj, degree, u_knots)*Bspline_coeffs(v, ii, degree, v_knots)
+        else:
+            # Clamp u and v to [0,1] to find base point
+            u_clamp = min(max(u, 0.0), 1.0)
+            v_clamp = min(max(v, 0.0), 1.0)
+            z, dz_du, dz_dv = eval_spline_and_derivatives(u_clamp, v_clamp, Z_control, degree, u_knots, v_knots, nx, ny)
+            # Linearly extrapolate
+            z_interp[i, j] = z + (u - u_clamp) * dz_du + (v - v_clamp) * dz_dv
 
+vmin=0
+vmax=8
+plt.figure()
+plt.contourf(X_ref,Y_ref,Z_ref, vmin=vmin, vmax=vmax)
 
 plt.figure()
-plt.contourf(X_ref,Y_ref,Z_ref)
-
-plt.figure()
-plt.contourf(U_interp,V_interp,z_interp)
+plt.contourf(U_interp,V_interp,z_interp, vmin=vmin, vmax=vmax)
 plt.show()
 
