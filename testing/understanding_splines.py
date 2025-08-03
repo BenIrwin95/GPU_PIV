@@ -1,25 +1,82 @@
 import numpy as np
-
-t_ref=[0,1,2,3]
-y_ref=[4,2,3,6]
-
-k_max = 3
-n=len(t_ref)
+import matplotlib.pyplot as plt
+# slightly modified example from a chatgpt example
+# basically the key things that had been missing is the special handling of end points
+# you basically ignore the usual formula and just set it equal to 1
 
 
-t_eval = 1.5
-
-B = np.zeros((k_max,n))
-
-for k in range(0,k_max):
-    for i in range(0,n):
-        if(k==0):
-            if(t_eval >t_ref[i] and t_eval < t_ref[i+1]):
-                B[k,i]=1
+# -----------------------------------
+# Step 1: Cox-de Boor recursive basis
+# -----------------------------------
+def N(i, k, u, knots):
+    # special case
+    if(u==knots[-1] and i==len(knots)-k-2):
+        return 1
+    if k == 0:
+        if (knots[i] <= u < knots[i + 1]):
+            return 1.0
         else:
-            temp1 = (t_eval-t_ref[i]/(t_ref[i+k] -t_ref[i])) * B[k-1,i]
-            temp2 = ((t_ref[i+k+1]-t_eval)/(t_ref[i+k+1] -t_ref[i+1]))  * B[k-1,i+1]
-            B[k,i] =  temp1 + temp2
+            return 0.0
 
+    denom1 = knots[i + k] - knots[i]
+    denom2 = knots[i + k + 1] - knots[i + 1]
 
-print(B)
+    term1 = 0.0
+    term2 = 0.0
+
+    if denom1 != 0:
+        term1 = (u - knots[i]) / denom1 * N(i, k - 1, u, knots)
+
+    if denom2 != 0:
+        term2 = (knots[i + k + 1] - u) / denom2 * N(i + 1, k - 1, u, knots)
+
+    return term1 + term2
+
+# --------------------------
+# Step 2: Define B-spline
+# --------------------------
+def bspline_curve(control_points, knots, degree, u_vals):
+    n = len(control_points) - 1
+    curve = []
+
+    for u in u_vals:
+        point = np.zeros(2)
+        for i in range(n + 1):
+            coeff = N(i, degree, u, knots)
+            point += coeff * control_points[i]
+        curve.append(point)
+
+    return np.array(curve)
+
+# ----------------------------
+# Step 3: Setup: Points & Knots
+# ----------------------------
+control_points = np.array([
+    [0.5, 0.5],
+    [1.0, 2.0],
+    [3.0, 3.0],
+    [4.0, 0.0]
+])
+
+degree = 2  # quadratic B-spline
+n = len(control_points) - 1
+
+# Clamped knot vector: [0, 0, 0, 1, 2, 2, 2]
+knots = np.array([0, 0, 0, 1, 2, 2, 2], dtype=float)
+
+# --------------------------
+# Step 4: Evaluate the curve
+# --------------------------
+u_vals = np.linspace(knots[degree], knots[-degree-1], 100)
+curve = bspline_curve(control_points, knots, degree, u_vals)
+
+# --------------------------
+# Step 5: Plot
+# --------------------------
+plt.plot(curve[:, 0], curve[:, 1], label='B-spline Curve', color='blue')
+plt.plot(control_points[:, 0], control_points[:, 1], 'o--', label='Control Points', color='orange')
+plt.title('B-spline Curve (Manual Basis Function Calculation)')
+plt.grid(True)
+plt.legend()
+plt.axis('equal')
+plt.show()
