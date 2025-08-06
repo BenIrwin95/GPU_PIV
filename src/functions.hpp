@@ -18,4 +18,12 @@ std::vector<int> findIntegersAfterKeyword(const std::string& filename, const std
 const char* get_cl_error_string(cl_int err);
 void print_cl_error(cl_int err, const std::string& filename, int line_number);
 
+
+
+//--------------------------------------------------------------------------------
+//-------------------------------tiffFunctions------------------------------------
+//--------------------------------------------------------------------------------
+
+ImageData readTiffToAppropriateIntegerVector(const std::string& filePath);
+
 #endif

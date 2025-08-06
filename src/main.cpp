@@ -6,7 +6,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    char *inputFile = argv[1];
+    //char *inputFile = argv[1];
+    const std::string inputFile = argv[1];
     PIVdata piv_data;
 
 
@@ -49,6 +50,19 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+
+
+    //-------------------------------------------------------------------
+    //-------------------------------------------------------------------
+    //---------------------Load a single image---------------------------
+    //--------------------and initialise memory--------------------------
+    //-------------------------------------------------------------------
+
+    ImageData im1;
+    ImageData im2;
+
+    im1 = readTiffToAppropriateIntegerVector(fmt::format(fmt::runtime(im1_filepath_template), 1));
+    std::cout << fmt::format(fmt::runtime(im1_filepath_template),1) << " loaded. Size: " << im1.width << "x" << im1.height << std::endl;
 
     // // 1. Get a platform and device
     // std::vector<cl::Platform> platforms;

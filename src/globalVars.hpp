@@ -7,6 +7,31 @@
 struct PIVdata {
     int N_pass;
     std::vector<int> window_sizes;
+    std::vector<std::vector<float>> X;
+    std::vector<std::vector<float>> Y;
+    std::vector<std::vector<float>> U;
+    std::vector<std::vector<float>> V;
+    std::vector<cl_int2> arrSize;
+};
+
+
+
+
+struct ImageData {
+    uint32_t width;
+    uint32_t height;
+
+    // std::variant can hold one of these vector types at any given time.
+    // This function specifically handles unsigned integer types.
+    std::variant<std::vector<uint8_t>, std::vector<uint16_t>, std::vector<uint32_t>> pixelData;
+
+    // Enum to indicate which type is currently stored in pixelData
+    enum class DataType {
+        UINT8,
+        UINT16,
+        UINT32,
+        UNKNOWN // Should not be reached if checks are robust
+    } type;
 };
 
 

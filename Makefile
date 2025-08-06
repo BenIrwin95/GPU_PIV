@@ -4,7 +4,7 @@ CC=g++
 # compiler flags
 # -g		adds debugging information
 # -Wall		turns on compiler warnings
-CFLAGS = -Wall -g
+CFLAGS = -Wall -g -std=c++20
 
 # Directories to search for header files (using -I)
 INCLUDE_DIRS = #-I./GPU_FFT
@@ -13,11 +13,11 @@ LDFLAGS = -L/usr/local/lib -L/usr/local/lib64 # -L./GPU_FFT
 # -L./usr/local/cuda-12.5/targets/x86_64-linux/lib/
 
 # Libraries to link against (using -l)
-LIBS = -ltiff -lm -lOpenCL #-lGPU_FFT
+LIBS = -ltiff -lm -lOpenCL -lfmt #-lGPU_FFT
 
 
 # src files
-SRCS = ./src/main.cpp ./src/OpenCL_utilities.cpp ./src/inputFunctions.cpp
+SRCS = ./src/main.cpp ./src/OpenCL_utilities.cpp ./src/inputFunctions.cpp ./src/tiffFunctions.cpp
 # the object files the .c files get converted into
 OBJS = $(SRCS:.c=.o)
 
