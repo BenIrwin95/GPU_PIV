@@ -23,7 +23,7 @@ ImageData readTiffToAppropriateIntegerVector(const std::string& filePath) {
     }
 
     uint32_t width, height;
-    uint16_t samplesPerPixel, bitsPerSample, sampleFormat;
+    uint16_t samplesPerPixel, bitsPerSample;//, sampleFormat;
 
     // Get image dimensions
     TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &width);
@@ -65,6 +65,7 @@ ImageData readTiffToAppropriateIntegerVector(const std::string& filePath) {
     // Determine the appropriate type based on bitsPerSample and read data
     if (bitsPerSample == 8) {
         imageData.type = ImageData::DataType::UINT8;
+        imageData.pixelBytes = sizeof(uint8_t);
         std::vector<uint8_t> data(numPixels);
         uint8_t* scanlineBuffer = static_cast<uint8_t*>(_TIFFmalloc(scanlineSize));
         if (!scanlineBuffer) {
@@ -84,6 +85,7 @@ ImageData readTiffToAppropriateIntegerVector(const std::string& filePath) {
         imageData.pixelData = data; // Assign the vector to the variant
     } else if (bitsPerSample == 16) {
         imageData.type = ImageData::DataType::UINT16;
+        imageData.pixelBytes = sizeof(uint16_t);
         std::vector<uint16_t> data(numPixels);
         uint16_t* scanlineBuffer = static_cast<uint16_t*>(_TIFFmalloc(scanlineSize));
         if (!scanlineBuffer) {
@@ -102,6 +104,7 @@ ImageData readTiffToAppropriateIntegerVector(const std::string& filePath) {
         imageData.pixelData = data;
     } else if (bitsPerSample == 32) {
         imageData.type = ImageData::DataType::UINT32;
+        imageData.pixelBytes = sizeof(uint32_t);
         std::vector<uint32_t> data(numPixels);
         uint32_t* scanlineBuffer = static_cast<uint32_t*>(_TIFFmalloc(scanlineSize));
         if (!scanlineBuffer) {
@@ -118,6 +121,8 @@ ImageData readTiffToAppropriateIntegerVector(const std::string& filePath) {
         }
         _TIFFfree(scanlineBuffer);
         imageData.pixelData = data;
+        imageData.sizeBytes = imageData.width * imageData.height * imageData.pixelBytes;
+
     } else {
         TIFFClose(tif);
         throw std::runtime_error("Error: Unsupported unsigned integer bits per sample: " + std::to_string(bitsPerSample));
@@ -128,3 +133,7 @@ ImageData readTiffToAppropriateIntegerVector(const std::string& filePath) {
 
     return imageData;
 }
+
+
+
+

@@ -60,9 +60,45 @@ int main(int argc, char* argv[]) {
 
     ImageData im1;
     ImageData im2;
-
+    // load first image to find its size and data type
     im1 = readTiffToAppropriateIntegerVector(fmt::format(fmt::runtime(im1_filepath_template), 1));
-    std::cout << fmt::format(fmt::runtime(im1_filepath_template),1) << " loaded. Size: " << im1.width << "x" << im1.height << std::endl;
+    im2 = readTiffToAppropriateIntegerVector(fmt::format(fmt::runtime(im2_filepath_template), 1));
+    //std::cout << fmt::format(fmt::runtime(im1_filepath_template),1) << " loaded. Size: " << im1.width << "x" << im1.height << std::endl;
+
+    // iterate through the passes to see what the size of our data structures will be
+    piv_data.arrSize.resize(piv_data.N_pass);
+    piv_data.X.resize(piv_data.N_pass);
+    piv_data.Y.resize(piv_data.N_pass);
+    piv_data.U.resize(piv_data.N_pass);
+    piv_data.V.resize(piv_data.N_pass);
+    for(int i=0;i<piv_data.N_pass;i++){
+        int windowSize = piv_data.window_sizes[i];
+        double overlap = 0.5;
+        int window_shift = (1.0-overlap)*windowSize;
+        piv_data.arrSize[i].s[0] = floor((im1.width-windowSize)/window_shift);
+        piv_data.arrSize[i].s[1] = floor((im1.height-windowSize)/window_shift);
+        uint32_t arrLen = piv_data.arrSize[i].s[0] * piv_data.arrSize[i].s[1];
+        piv_data.X[i].resize(arrLen);
+        piv_data.Y[i].resize(arrLen);
+        piv_data.U[i].resize(arrLen);
+        piv_data.V[i].resize(arrLen);
+    }
+    err = inititialise_OpenCL_buffers(env, piv_data, im1);
+    if(err != CL_SUCCESS){
+        CHECK_CL_ERROR(err);
+        return 1;
+    }
+
+
+    for(int frame=0;frame<N_frames;frame++){
+        // load images
+        im1 = readTiffToAppropriateIntegerVector(fmt::format(fmt::runtime(im1_filepath_template), im1_frame_start + frame*im1_frame_step));
+        im2 = readTiffToAppropriateIntegerVector(fmt::format(fmt::runtime(im2_filepath_template), im2_frame_start + frame*im2_frame_step));
+        err = env.queue.enqueueWriteBuffer( env.im1, CL_TRUE, 0, im1.sizeBytes, std::visit([](const auto& vec) -> const void* {return vec.data();}, im1.pixelData));
+        if(err != CL_SUCCESS){CHECK_CL_ERROR(err);std::cout << "Image 1 could not be read" << std::endl;break;}
+        err = env.queue.enqueueWriteBuffer( env.im2, CL_TRUE, 0, im1.sizeBytes, std::visit([](const auto& vec) -> const void* {return vec.data();}, im2.pixelData));
+        if(err != CL_SUCCESS){CHECK_CL_ERROR(err);std::cout << "Image 2 could not be read" << std::endl;break;}
+    }
 
     // // 1. Get a platform and device
     // std::vector<cl::Platform> platforms;

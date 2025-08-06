@@ -25,6 +25,7 @@ struct ImageData {
     // This function specifically handles unsigned integer types.
     std::variant<std::vector<uint8_t>, std::vector<uint16_t>, std::vector<uint32_t>> pixelData;
 
+
     // Enum to indicate which type is currently stored in pixelData
     enum class DataType {
         UINT8,
@@ -32,6 +33,8 @@ struct ImageData {
         UINT32,
         UNKNOWN // Should not be reached if checks are robust
     } type;
+    size_t pixelBytes; // bytes in a single pixel
+    size_t sizeBytes; //total size of image in bytes
 };
 
 
@@ -43,6 +46,15 @@ struct OpenCL_env {
     cl::CommandQueue queue;             // command queue
     cl::Program program;                 // program
     cl_int status;
+    // memory structures for working on GPU
+    cl::Buffer im1;
+    cl::Buffer im2;
+    cl::Buffer im1_windows;
+    cl::Buffer im2_windows;
+    cl::Buffer X;
+    cl::Buffer Y;
+    cl::Buffer U;
+    cl::Buffer V;
 
 
     // constructor (this will automatically setup the OpenCL environment for this project)
