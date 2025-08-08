@@ -45,10 +45,7 @@ int main(int argc, char* argv[]) {
 
     cl_int err;
     OpenCL_env env;
-    if(env.status != CL_SUCCESS){
-        CHECK_CL_ERROR(env.status);
-        return 1;
-    }
+    if(env.status != CL_SUCCESS){CHECK_CL_ERROR(env.status);return 1;}
 
 
 
@@ -92,11 +89,15 @@ int main(int argc, char* argv[]) {
 
     }
     err = inititialise_OpenCL_buffers(env, piv_data, im_ref);
-    if(err != CL_SUCCESS){
-        CHECK_CL_ERROR(err);
-        return 1;
-    }
+    if(err != CL_SUCCESS){CHECK_CL_ERROR(err);return 1;}
 
+
+
+    //-------------------------------------------------------------------
+    //-------------------------------------------------------------------
+    //---------------------iterate through frames------------------------
+    //-------------------------------------------------------------------
+    //-------------------------------------------------------------------
 
     for(int frame=0;frame<N_frames;frame++){
         // load images, upload to GPU and convert to complex format ready for FFT later on
@@ -109,18 +110,18 @@ int main(int argc, char* argv[]) {
         if(err != CL_SUCCESS){CHECK_CL_ERROR(err);std::cout << fmt::format(fmt::runtime(im2_filepath_template), im2_frame_start + frame*im2_frame_step) <<" could not be uploaded" << std::endl;break;}
 
 
-        // iterate through passes with different window sizes
+        //-------------------------------------------------------------------
+        //-------------------------------------------------------------------
+        //---------------------iterate through passes------------------------
+        //-------------------------------------------------------------------
+        //-------------------------------------------------------------------
         for(int pass=0;pass<piv_data.N_pass;pass++){
             // upload correct X and Y grid for this pass
             const size_t gridSizeBytes = piv_data.arrSize[pass].s[0]*piv_data.arrSize[pass].s[1]*sizeof(float);
             try{
                 env.queue.enqueueWriteBuffer( env.X, CL_TRUE, 0, gridSizeBytes, piv_data.X[pass].data());
                 env.queue.enqueueWriteBuffer( env.Y, CL_TRUE, 0, gridSizeBytes, piv_data.Y[pass].data());
-            } catch (cl::Error& e) {
-                std::cerr << "Error uploading to GPU" << std::endl;
-                CHECK_CL_ERROR(e.err());
-                return 1;
-            }
+            } catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return 1;}
 
 
             // divide image into tiles

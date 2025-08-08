@@ -55,6 +55,7 @@ struct OpenCL_env {
     // kernels
     cl::Kernel kernel_convert_im_to_complex;
     cl::Kernel kernel_uniform_tiling;
+    cl::Kernel kernel_FFT_1D;
 
     // memory structures for working on GPU
     cl::Buffer im1;
@@ -111,9 +112,10 @@ struct OpenCL_env {
 
         // loading kernels sources into program
         try {
-            cl::Program::Sources sources;
+            cl::Program::Sources sources;kernelSource_FFT
             sources.push_back({kernelSource_tiffFunctions.c_str(), kernelSource_tiffFunctions.length()});
             sources.push_back({kernelSource_dataArrangement.c_str(), kernelSource_dataArrangement.length()});
+            sources.push_back({kernelSource_FFT.c_str(), kernelSource_FFT.length()});
             program = cl::Program(context, sources);
 
         } catch (cl::Error& e) {
@@ -144,6 +146,7 @@ struct OpenCL_env {
         try {
             kernel_convert_im_to_complex = cl::Kernel(program, "convert_to_float2");
             kernel_uniform_tiling = cl::Kernel(program, "uniform_tiling");
+            kernel_FFT_1D = cl::Kernel(program, "FFT_1D");
             // Kernel creation was successful
         } catch (cl::Error& e) {
             std::cerr << "Error creating kernels: " << e.what() << " (" << e.err() << ")" << std::endl;
