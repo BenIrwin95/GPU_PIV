@@ -25,5 +25,13 @@ cl_int inititialise_OpenCL_buffers(OpenCL_env& env, PIVdata& piv_data, ImageData
 //--------------------------------------------------------------------------------
 
 ImageData readTiffToAppropriateIntegerVector(const std::string& filePath);
+cl_int uploadImage_and_convert_to_complex(ImageData& im, OpenCL_env& env, cl::Buffer& buffer, cl::Buffer& buffer_complex);
+
+
+//--------------------------------------------------------------------------------
+//-------------------------------dataArrangement----------------------------------
+//--------------------------------------------------------------------------------
+
+cl_int uniformly_tile_data(cl::Buffer& input, cl_int2 inputDim, cl::Buffer& output, int windowSize, int window_shift, cl_int2 arrSize, OpenCL_env& env);
 
 #endif

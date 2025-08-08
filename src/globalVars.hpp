@@ -4,9 +4,13 @@
 #include "standardLibraries.hpp"
 
 
+extern const std::string kernelSource_tiffFunctions;
+extern const std::string kernelSource_dataArrangement;
+
 struct PIVdata {
     int N_pass;
     std::vector<int> window_sizes;
+    std::vector<int> window_shifts;
     std::vector<std::vector<float>> X;
     std::vector<std::vector<float>> Y;
     std::vector<std::vector<float>> U;
@@ -20,10 +24,12 @@ struct PIVdata {
 struct ImageData {
     uint32_t width;
     uint32_t height;
+    cl_int2 dims;
 
     // std::variant can hold one of these vector types at any given time.
     // This function specifically handles unsigned integer types.
     std::variant<std::vector<uint8_t>, std::vector<uint16_t>, std::vector<uint32_t>> pixelData;
+    std::vector<cl_float2> complexPixelData;
 
 
     // Enum to indicate which type is currently stored in pixelData
@@ -46,9 +52,15 @@ struct OpenCL_env {
     cl::CommandQueue queue;             // command queue
     cl::Program program;                 // program
     cl_int status;
+    // kernels
+    cl::Kernel kernel_convert_im_to_complex;
+    cl::Kernel kernel_uniform_tiling;
+
     // memory structures for working on GPU
     cl::Buffer im1;
     cl::Buffer im2;
+    cl::Buffer im1_complex;
+    cl::Buffer im2_complex;
     cl::Buffer im1_windows;
     cl::Buffer im2_windows;
     cl::Buffer X;
@@ -97,12 +109,63 @@ struct OpenCL_env {
             return;
         }
 
-        // will need to later something for building program
+        // loading kernels sources into program
+        try {
+            cl::Program::Sources sources;
+            sources.push_back({kernelSource_tiffFunctions.c_str(), kernelSource_tiffFunctions.length()});
+            sources.push_back({kernelSource_dataArrangement.c_str(), kernelSource_dataArrangement.length()});
+            program = cl::Program(context, sources);
+
+        } catch (cl::Error& e) {
+            status=e.err();
+            std::cerr << "Error creating program: " << e.what() << " (" << e.err() << ")" << std::endl;
+            return;
+        }
+
+
+        // build program
+        try {
+            program.build(devices);
+        } catch (cl::Error& e) {
+            if (e.err() == CL_BUILD_PROGRAM_FAILURE) {
+                // Find the device that failed to build
+                for (const auto& device : devices) {
+                    // Get the build log for the device
+                    std::string log = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
+                    std::cerr << "Build log for device " << device.getInfo<CL_DEVICE_NAME>() << ":" << std::endl;
+                    std::cerr << log << std::endl;
+                }
+            }
+            status = e.err();
+            return;
+        }
+
+        // kernel creation
+        try {
+            kernel_convert_im_to_complex = cl::Kernel(program, "convert_to_float2");
+            kernel_uniform_tiling = cl::Kernel(program, "uniform_tiling");
+            // Kernel creation was successful
+        } catch (cl::Error& e) {
+            std::cerr << "Error creating kernels: " << e.what() << " (" << e.err() << ")" << std::endl;
+            status=e.err();
+            return;
+        }
+
+
+
+        //kernel_convert_im_to_complex
+
         status=CL_SUCCESS;
         std::cout << "OpenCL environment successfully initialized." << std::endl;
     }
 
 };
+
+
+
+
+
+
 
 
 #endif

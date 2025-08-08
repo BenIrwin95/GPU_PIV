@@ -96,8 +96,10 @@ cl_int inititialise_OpenCL_buffers(OpenCL_env& env, PIVdata& piv_data, ImageData
     }
     env.im1 = cl::Buffer(env.context, CL_MEM_READ_WRITE, im.width*im.height*im.pixelBytes, NULL, &err); if(err != CL_SUCCESS){return err;}
     env.im2 = cl::Buffer(env.context, CL_MEM_READ_WRITE, im.width*im.height*im.pixelBytes, NULL, &err); if(err != CL_SUCCESS){return err;}
-    env.im1_windows = cl::Buffer(env.context, CL_MEM_READ_WRITE, max_ImWindowed_Len, NULL, &err); if(err != CL_SUCCESS){return err;}
-    env.im2_windows = cl::Buffer(env.context, CL_MEM_READ_WRITE, max_ImWindowed_Len, NULL, &err); if(err != CL_SUCCESS){return err;}
+    env.im1_complex = cl::Buffer(env.context, CL_MEM_READ_WRITE, im.width*im.height*sizeof(cl_float2), NULL, &err); if(err != CL_SUCCESS){return err;}
+    env.im2_complex = cl::Buffer(env.context, CL_MEM_READ_WRITE, im.width*im.height*sizeof(cl_float2), NULL, &err); if(err != CL_SUCCESS){return err;}
+    env.im1_windows = cl::Buffer(env.context, CL_MEM_READ_WRITE, max_ImWindowed_Len*sizeof(cl_float2), NULL, &err); if(err != CL_SUCCESS){return err;}
+    env.im2_windows = cl::Buffer(env.context, CL_MEM_READ_WRITE, max_ImWindowed_Len*sizeof(cl_float2), NULL, &err); if(err != CL_SUCCESS){return err;}
     env.X = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrLen*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
     env.Y = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrLen*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
     env.U = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrLen*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}

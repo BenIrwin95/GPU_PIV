@@ -2,6 +2,33 @@
 
 
 
+
+const std::string kernelSource_tiffFunctions=R"(
+
+__kernel void convert_to_float2(__global const uchar* input_data, __global float2* output_data, int N) {
+    int gid = get_global_id(0);
+
+    if(gid<N){
+        // Read the uint8_t data
+        uchar val_uchar = input_data[gid];
+
+        // Convert to a float
+        float val_float = (float)val_uchar;
+
+        // Create the cl_float2 vector with the s[0] element as the float value and s[1] as 0.0f
+        float2 result_vec = (float2)(val_float, 0.0f);
+
+        // Write the result to the output array
+        output_data[gid] = result_vec;
+    }
+}
+
+
+)";
+
+
+
+
 /**
  * @brief Reads a single-channel TIFF file into a std::vector of the appropriate
  * unsigned integer type (uint8_t, uint16_t, or uint32_t).
@@ -53,6 +80,8 @@ ImageData readTiffToAppropriateIntegerVector(const std::string& filePath) {
     ImageData imageData;
     imageData.width = width;
     imageData.height = height;
+    imageData.dims.s[0]=width;
+    imageData.dims.s[1]=height;
     size_t numPixels = static_cast<size_t>(width) * height;
 
     // Get the size of a single scanline in bytes
@@ -83,6 +112,7 @@ ImageData readTiffToAppropriateIntegerVector(const std::string& filePath) {
         }
         _TIFFfree(scanlineBuffer);
         imageData.pixelData = data; // Assign the vector to the variant
+        imageData.sizeBytes = imageData.width * imageData.height * imageData.pixelBytes;
     } else if (bitsPerSample == 16) {
         imageData.type = ImageData::DataType::UINT16;
         imageData.pixelBytes = sizeof(uint16_t);
@@ -102,6 +132,7 @@ ImageData readTiffToAppropriateIntegerVector(const std::string& filePath) {
         }
         _TIFFfree(scanlineBuffer);
         imageData.pixelData = data;
+        imageData.sizeBytes = imageData.width * imageData.height * imageData.pixelBytes;
     } else if (bitsPerSample == 32) {
         imageData.type = ImageData::DataType::UINT32;
         imageData.pixelBytes = sizeof(uint32_t);
@@ -135,5 +166,61 @@ ImageData readTiffToAppropriateIntegerVector(const std::string& filePath) {
 }
 
 
+//__kernel void convert_to_float2(__global const uchar* input_data, __global float2* output_data, int N) {
+
+cl_int uploadImage_and_convert_to_complex(ImageData& im, OpenCL_env& env, cl::Buffer& buffer, cl::Buffer& buffer_complex){
+    cl_int err;
+
+    const void* host_ptr = std::visit([](const auto& vec) -> const void* {return vec.data();}, im.pixelData);
+    if (!host_ptr) {
+        // Handle error: host pointer is null
+        return CL_INVALID_HOST_PTR; // A custom or predefined error code
+    }
+    try{
+        err = env.queue.enqueueWriteBuffer( buffer, CL_TRUE, 0, im.sizeBytes, host_ptr);
+    } catch (cl::Error& e) {
+        std::cerr << "Error uploading to GPU" << std::endl;
+        CHECK_CL_ERROR(e.err());
+        return e.err();
+    }
+
+    cl_int N = im.width*im.height;
+    try {
+        err = env.kernel_convert_im_to_complex.setArg(0, buffer);
+    } catch (cl::Error& e) {
+        std::cerr << "Error setting kernel argument 0" << std::endl;
+        CHECK_CL_ERROR(e.err());
+        return e.err();
+    }
+    try {
+        err = env.kernel_convert_im_to_complex.setArg(1, buffer_complex);
+    } catch (cl::Error& e) {
+        std::cerr << "Error setting kernel argument 1" << std::endl;
+        CHECK_CL_ERROR(e.err());
+        return e.err();
+    }
+    try {
+        err = env.kernel_convert_im_to_complex.setArg(2, sizeof(cl_int),&N);
+    } catch (cl::Error& e) {
+        std::cerr << "Error setting kernel argument 2" << std::endl;
+        CHECK_CL_ERROR(e.err());
+        return e.err();
+    }
+
+
+    size_t N_local = 64;
+    cl::NDRange local(N_local);
+    size_t N_groups = ceil((float)N/N_local);
+    cl::NDRange global(N_groups*N_local);
+    try{
+        env.queue.enqueueNDRangeKernel(env.kernel_convert_im_to_complex, cl::NullRange, global, local);
+    } catch (cl::Error& e) {
+        std::cerr << "Error Enqueuing kernel_convert_im_to_complex" << std::endl;
+        CHECK_CL_ERROR(e.err());
+        return e.err();
+    }
+
+    return CL_SUCCESS;
+}
 
 

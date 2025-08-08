@@ -17,7 +17,7 @@ LIBS = -ltiff -lm -lOpenCL -lfmt #-lGPU_FFT
 
 
 # src files
-SRCS = ./src/main.cpp ./src/OpenCL_utilities.cpp ./src/inputFunctions.cpp ./src/tiffFunctions.cpp
+SRCS = ./src/main.cpp ./src/OpenCL_utilities.cpp ./src/inputFunctions.cpp ./src/tiffFunctions.cpp ./src/dataArrangement.cpp
 # the object files the .c files get converted into
 OBJS = $(SRCS:.c=.o)
 
