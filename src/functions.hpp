@@ -34,4 +34,21 @@ cl_int uploadImage_and_convert_to_complex(ImageData& im, OpenCL_env& env, cl::Bu
 
 cl_int uniformly_tile_data(cl::Buffer& input, cl_int2 inputDim, cl::Buffer& output, int windowSize, int window_shift, cl_int2 arrSize, OpenCL_env& env);
 
+//--------------------------------------------------------------------------------
+//------------------------------------FFT-----------------------------------------
+//--------------------------------------------------------------------------------
+
+cl_int FFT2D_tiled(cl::Buffer& input, cl_int2 inputDim, int windowSize, int dir, OpenCL_env& env);
+
+//--------------------------------------------------------------------------------
+//----------------------------determineCorrelation--------------------------------
+//--------------------------------------------------------------------------------
+
+cl_int FFT_corr_tiled(cl::Buffer& input1, cl::Buffer& input2, cl_int2 inputDim, int windowSize, OpenCL_env& env);
+cl_int find_max_corr(cl::Buffer& input, cl_int2 inputDim, int windowSize, cl::Buffer& outputU, cl::Buffer& outputV, cl_int2 arrSize, int activate_subpixel, OpenCL_env& env);
+//--------------------------------------------------------------------------------
+//----------------------------determineCorrelation--------------------------------
+//--------------------------------------------------------------------------------
+void add_pass_data_to_file(int pass, std::ofstream& outputFile, PIVdata& piv_data, OpenCL_env& env);
+
 #endif

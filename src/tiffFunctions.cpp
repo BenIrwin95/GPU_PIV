@@ -171,41 +171,18 @@ ImageData readTiffToAppropriateIntegerVector(const std::string& filePath) {
 cl_int uploadImage_and_convert_to_complex(ImageData& im, OpenCL_env& env, cl::Buffer& buffer, cl::Buffer& buffer_complex){
     cl_int err;
 
+    // due to the unknown type of the data, this extra step is needed
     const void* host_ptr = std::visit([](const auto& vec) -> const void* {return vec.data();}, im.pixelData);
     if (!host_ptr) {
         // Handle error: host pointer is null
         return CL_INVALID_HOST_PTR; // A custom or predefined error code
     }
-    try{
-        err = env.queue.enqueueWriteBuffer( buffer, CL_TRUE, 0, im.sizeBytes, host_ptr);
-    } catch (cl::Error& e) {
-        std::cerr << "Error uploading to GPU" << std::endl;
-        CHECK_CL_ERROR(e.err());
-        return e.err();
-    }
+    try{err = env.queue.enqueueWriteBuffer( buffer, CL_TRUE, 0, im.sizeBytes, host_ptr);} catch (cl::Error& e) {std::cerr << "Error uploading to GPU" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
 
     cl_int N = im.width*im.height;
-    try {
-        err = env.kernel_convert_im_to_complex.setArg(0, buffer);
-    } catch (cl::Error& e) {
-        std::cerr << "Error setting kernel argument 0" << std::endl;
-        CHECK_CL_ERROR(e.err());
-        return e.err();
-    }
-    try {
-        err = env.kernel_convert_im_to_complex.setArg(1, buffer_complex);
-    } catch (cl::Error& e) {
-        std::cerr << "Error setting kernel argument 1" << std::endl;
-        CHECK_CL_ERROR(e.err());
-        return e.err();
-    }
-    try {
-        err = env.kernel_convert_im_to_complex.setArg(2, sizeof(cl_int),&N);
-    } catch (cl::Error& e) {
-        std::cerr << "Error setting kernel argument 2" << std::endl;
-        CHECK_CL_ERROR(e.err());
-        return e.err();
-    }
+    try {err = env.kernel_convert_im_to_complex.setArg(0, buffer);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 0" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_convert_im_to_complex.setArg(1, buffer_complex);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 1" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_convert_im_to_complex.setArg(2, sizeof(cl_int),&N);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 2" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
 
 
     size_t N_local = 64;
@@ -219,6 +196,7 @@ cl_int uploadImage_and_convert_to_complex(ImageData& im, OpenCL_env& env, cl::Bu
         CHECK_CL_ERROR(e.err());
         return e.err();
     }
+    env.queue.finish();
 
     return CL_SUCCESS;
 }

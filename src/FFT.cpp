@@ -104,9 +104,11 @@ const std::string kernelSource_FFT = R"KERN_END(
 
 cl_int FFT2D_tiled(cl::Buffer& input, cl_int2 inputDim, int windowSize, int dir, OpenCL_env& env){
     cl_int err=CL_SUCCESS;
+    cl::NDRange local;
+    cl::NDRange global;
 
-    size_t N_windows_x = inputDim.x/windowSize;
-    size_t N_windows_y = inputDim.y/windowSize;
+    size_t N_windows_x = inputDim.s[0]/windowSize;
+    size_t N_windows_y = inputDim.s[1]/windowSize;
     size_t localSize[2];
     size_t numGroups[2];
     size_t globalSize[2];
@@ -121,76 +123,39 @@ cl_int FFT2D_tiled(cl::Buffer& input, cl_int2 inputDim, int windowSize, int dir,
 
     // first perform row-wise operations
     numGroups[0] = N_windows_x;
-    numGroups[1] = inputDim.y;
+    numGroups[1] = inputDim.s[1];
     globalSize[0] = localSize[0]*numGroups[0];
     globalSize[1] = localSize[1]*numGroups[1];
-    strideDim.x=windowSize;
-    strideDim.y=1;
+    strideDim.s[0]=windowSize;
+    strideDim.s[1]=1;
     step=1;
     try {err = env.kernel_FFT_1D.setArg(0, input);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 0" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
     try {err = env.kernel_FFT_1D.setArg(1, sizeof(cl_int2), &inputDim);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 1" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
-    // err=clSetKernelArg(kernelFFT_1D, idx, sizeof(cl_mem), &inputGPU); idx++;
-    // err=clSetKernelArg(kernelFFT_1D, idx, sizeof(cl_int2), &inputDim); idx++;
-    // err=clSetKernelArg(kernelFFT_1D, idx, sizeof(cl_int2), &strideDim); idx++;
-    // err=clSetKernelArg(kernelFFT_1D, idx, sizeof(int), &step); idx++;
-    // err=clSetKernelArg(kernelFFT_1D, idx, sizeof(int), &N); idx++;
-    // err=clSetKernelArg(kernelFFT_1D, idx, sizeof(int), &dir); idx++;
+    try {err = env.kernel_FFT_1D.setArg(2, sizeof(cl_int2), &strideDim);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 2" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_FFT_1D.setArg(3, sizeof(int), &step);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 3" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_FFT_1D.setArg(4, sizeof(int), &N);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 4" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_FFT_1D.setArg(5, sizeof(int), &dir);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 5" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    local = cl::NDRange(localSize[0], localSize[1]);
+    global = cl::NDRange(globalSize[0], globalSize[1]);
+    try{env.queue.enqueueNDRangeKernel(env.kernel_FFT_1D, cl::NullRange, global, local);} catch (cl::Error& e) {std::cerr << "Error Enqueuing kernel_FFT_1D" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    try{env.queue.finish();} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+
+
+    // now to do column-wise
+    numGroups[0] = inputDim.s[0];
+    numGroups[1] = N_windows_y;
+    globalSize[0] = localSize[0]*numGroups[0];
+    globalSize[1] = localSize[1]*numGroups[1];
+    strideDim.s[0]=1;
+    strideDim.s[1]=windowSize;
+    step=inputDim.s[0];
+    try {err = env.kernel_FFT_1D.setArg(2, sizeof(cl_int2), &strideDim);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 2" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_FFT_1D.setArg(3, sizeof(int), &step);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 3" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    local = cl::NDRange(localSize[0], localSize[1]);
+    global = cl::NDRange(globalSize[0], globalSize[1]);
+    try{env.queue.enqueueNDRangeKernel(env.kernel_FFT_1D, cl::NullRange, global, local);} catch (cl::Error& e) {std::cerr << "Error Enqueuing kernel_FFT_1D" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    try{env.queue.finish();} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
 
     return err;
 }
 
-/*
-void FFT2D_tiled (cl_mem inputGPU, cl_int2 inputDim, int windowSize, int dir, cl_kernel kernelFFT_1D, cl_command_queue queue){
-    cl_int err;
-    size_t N_windows_x = inputDim.x/windowSize;
-    size_t N_windows_y = inputDim.y/windowSize;
-    size_t localSize[2];
-    size_t numGroups[2];
-    size_t globalSize[2];
-    cl_int2 strideDim; // how many elements we want to move in x and y for each group
-    int step; // number of elements to move in input, to get the next consecutive element we need to use
-    int N; // number of elements we will perform FFT over
-    N=windowSize;
-
-    localSize[0] = windowSize;
-    localSize[1] = 1;
-
-    // first perform row-wise operations
-    numGroups[0] = N_windows_x;
-    numGroups[1] = inputDim.y;
-    globalSize[0] = localSize[0]*numGroups[0];
-    globalSize[1] = localSize[1]*numGroups[1];
-    strideDim.x=windowSize;
-    strideDim.y=1;
-    step=1;
-
-    // set arguments for kernel function
-    int idx;
-    idx=0;
-    err=clSetKernelArg(kernelFFT_1D, idx, sizeof(cl_mem), &inputGPU); idx++;
-    err=clSetKernelArg(kernelFFT_1D, idx, sizeof(cl_int2), &inputDim); idx++;
-    err=clSetKernelArg(kernelFFT_1D, idx, sizeof(cl_int2), &strideDim); idx++;
-    err=clSetKernelArg(kernelFFT_1D, idx, sizeof(int), &step); idx++;
-    err=clSetKernelArg(kernelFFT_1D, idx, sizeof(int), &N); idx++;
-    err=clSetKernelArg(kernelFFT_1D, idx, sizeof(int), &dir); idx++;
-    // Execute the kernel over the entire range of the data set
-    err=clEnqueueNDRangeKernel(queue, kernelFFT_1D, 2, NULL, globalSize, localSize,0, NULL, NULL);
-    err = clFinish(queue);
-
-
-    // next perform column-wise operations
-    // columnwise
-
-    numGroups[0] = inputDim.x;
-    numGroups[1] = N_windows_y;
-    globalSize[0] = localSize[0]*numGroups[0];
-    globalSize[1] = localSize[1]*numGroups[1];
-    strideDim.x=1;
-    strideDim.y=windowSize;
-    step=inputDim.x;
-    err=clSetKernelArg(kernelFFT_1D, 2, sizeof(cl_int2), &strideDim); idx++;
-    err=clSetKernelArg(kernelFFT_1D, 3, sizeof(int), &step); idx++;
-    err=clEnqueueNDRangeKernel(queue, kernelFFT_1D, 2, NULL, globalSize, localSize,0, NULL, NULL);
-    err = clFinish(queue);
-
-};*/

@@ -39,6 +39,16 @@ cl_int uniformly_tile_data(cl::Buffer& input, cl_int2 inputDim, cl::Buffer& outp
     try {err = env.kernel_uniform_tiling.setArg(5, sizeof(cl_int2), &outputDim);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 5" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
 
 
+    cl::NDRange local(windowSize, windowSize);
+    cl::NDRange global(arrSize.s[0]*windowSize, arrSize.s[1]*windowSize);
+    try{
+        env.queue.enqueueNDRangeKernel(env.kernel_uniform_tiling, cl::NullRange, global, local);
+    } catch (cl::Error& e) {
+        std::cerr << "Error Enqueuing kernel_uniform_tiling" << std::endl;
+        CHECK_CL_ERROR(e.err());
+        return e.err();
+    }
+    env.queue.finish();
     return err;
 }
 

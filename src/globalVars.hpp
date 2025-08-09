@@ -6,6 +6,9 @@
 
 extern const std::string kernelSource_tiffFunctions;
 extern const std::string kernelSource_dataArrangement;
+extern const std::string kernelSource_FFT;
+extern const std::string kernelSource_complexMaths;
+extern const std::string kernelSource_determineCorrelation;
 
 struct PIVdata {
     int N_pass;
@@ -56,6 +59,8 @@ struct OpenCL_env {
     cl::Kernel kernel_convert_im_to_complex;
     cl::Kernel kernel_uniform_tiling;
     cl::Kernel kernel_FFT_1D;
+    cl::Kernel kernel_complex_multiply_conjugate_norm;
+    cl::Kernel kernel_findMaxCorr;
 
     // memory structures for working on GPU
     cl::Buffer im1;
@@ -112,10 +117,12 @@ struct OpenCL_env {
 
         // loading kernels sources into program
         try {
-            cl::Program::Sources sources;kernelSource_FFT
+            cl::Program::Sources sources;
+            sources.push_back({kernelSource_complexMaths.c_str(), kernelSource_complexMaths.length()});
             sources.push_back({kernelSource_tiffFunctions.c_str(), kernelSource_tiffFunctions.length()});
             sources.push_back({kernelSource_dataArrangement.c_str(), kernelSource_dataArrangement.length()});
             sources.push_back({kernelSource_FFT.c_str(), kernelSource_FFT.length()});
+            sources.push_back({kernelSource_determineCorrelation.c_str(), kernelSource_determineCorrelation.length()});
             program = cl::Program(context, sources);
 
         } catch (cl::Error& e) {
@@ -147,6 +154,8 @@ struct OpenCL_env {
             kernel_convert_im_to_complex = cl::Kernel(program, "convert_to_float2");
             kernel_uniform_tiling = cl::Kernel(program, "uniform_tiling");
             kernel_FFT_1D = cl::Kernel(program, "FFT_1D");
+            kernel_complex_multiply_conjugate_norm = cl::Kernel(program, "complex_multiply_conjugate_norm");
+            kernel_findMaxCorr = cl::Kernel(program, "findMaxCorr");
             // Kernel creation was successful
         } catch (cl::Error& e) {
             std::cerr << "Error creating kernels: " << e.what() << " (" << e.err() << ")" << std::endl;

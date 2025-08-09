@@ -1,5 +1,21 @@
 #include "standardHeader.hpp"
 
+
+
+
+void debug_message(std::string message, int min_level, int debug){
+    if(debug >= min_level){
+        std::cout << "-";
+        for (int i = 0; i < min_level; ++i) {
+            std::cout << "-";
+        }
+        std::cout << message << std::endl;
+    }
+}
+
+
+
+
 int main(int argc, char* argv[]) {
     if (argc != 2) { // argc counts all inputs including the .exe name
         fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
@@ -20,6 +36,7 @@ int main(int argc, char* argv[]) {
     std::string im2_filepath_template;
     int im2_frame_start;
     int im2_frame_step;
+    std::string output_template;
     try{
         DEBUG_LVL = findIntegerAfterKeyword(inputFile, "DEBUG");
         N_frames = findIntegerAfterKeyword(inputFile, "N_FRAMES");
@@ -31,6 +48,7 @@ int main(int argc, char* argv[]) {
         im2_frame_step = findIntegerAfterKeyword(inputFile, "IM2_FRAME_STEP");
         piv_data.N_pass = findIntegerAfterKeyword(inputFile, "N_PASS");
         piv_data.window_sizes = findIntegersAfterKeyword(inputFile, "WINDOW_SIZE");
+        output_template = findRestOfLineAfterKeyword(inputFile,"OUTPUT_TEMPLATE");
     } catch (const std::runtime_error& e) {
         std::cerr << e.what() << std::endl;
         return 1;
@@ -42,7 +60,7 @@ int main(int argc, char* argv[]) {
     //---------------------initialise OpenCL-----------------------------
     //-------------------------------------------------------------------
     //-------------------------------------------------------------------
-
+    debug_message("Initialising OpenCL environment", 0, DEBUG_LVL);
     cl_int err;
     OpenCL_env env;
     if(env.status != CL_SUCCESS){CHECK_CL_ERROR(env.status);return 1;}
@@ -54,7 +72,7 @@ int main(int argc, char* argv[]) {
     //---------------------Load a single image---------------------------
     //--------------------and initialise memory--------------------------
     //-------------------------------------------------------------------
-
+    debug_message("Initialising memory structures", 0, DEBUG_LVL);
 
     // load first image to find its size and data type
     ImageData im_ref = readTiffToAppropriateIntegerVector(fmt::format(fmt::runtime(im1_filepath_template), 1));
@@ -100,6 +118,7 @@ int main(int argc, char* argv[]) {
     //-------------------------------------------------------------------
 
     for(int frame=0;frame<N_frames;frame++){
+        debug_message(fmt::format("Frame {}",frame), 0, DEBUG_LVL);
         // load images, upload to GPU and convert to complex format ready for FFT later on
         ImageData im1 = readTiffToAppropriateIntegerVector(fmt::format(fmt::runtime(im1_filepath_template), im1_frame_start + frame*im1_frame_step));
         ImageData im2 = readTiffToAppropriateIntegerVector(fmt::format(fmt::runtime(im2_filepath_template), im2_frame_start + frame*im2_frame_step));
@@ -115,7 +134,13 @@ int main(int argc, char* argv[]) {
         //---------------------iterate through passes------------------------
         //-------------------------------------------------------------------
         //-------------------------------------------------------------------
+        std::ofstream outputFile(fmt::format(fmt::runtime(output_template),frame));
+        if (!outputFile.is_open()) {
+            std::cerr << "Error opening file!" << std::endl;
+            return 1;
+        }
         for(int pass=0;pass<piv_data.N_pass;pass++){
+            debug_message(fmt::format("Pass {}",pass), 1, DEBUG_LVL);
             // upload correct X and Y grid for this pass
             const size_t gridSizeBytes = piv_data.arrSize[pass].s[0]*piv_data.arrSize[pass].s[1]*sizeof(float);
             try{
@@ -125,11 +150,26 @@ int main(int argc, char* argv[]) {
 
 
             // divide image into tiles
+            debug_message("Dividing image into tiles", 2, DEBUG_LVL);
             err = uniformly_tile_data(env.im1_complex, im1.dims, env.im1_windows, piv_data.window_sizes[pass], piv_data.window_shifts[pass], piv_data.arrSize[pass], env);
             if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
             err = uniformly_tile_data(env.im2_complex, im2.dims, env.im2_windows, piv_data.window_sizes[pass], piv_data.window_shifts[pass], piv_data.arrSize[pass], env);
             if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
 
+            // compute correlation
+            debug_message("Computing correlation", 2, DEBUG_LVL);
+            cl_int2 im_windows_dim;
+            im_windows_dim.s[0] = piv_data.arrSize[pass].s[0]*piv_data.window_sizes[pass];
+            im_windows_dim.s[1] = piv_data.arrSize[pass].s[1]*piv_data.window_sizes[pass];
+            err = FFT_corr_tiled(env.im1_windows, env.im2_windows, im_windows_dim, piv_data.window_sizes[pass], env);
+            if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
+            int activate_subpixel=0;
+            if(pass == piv_data.N_pass-1){activate_subpixel=1;}
+            err = find_max_corr(env.im1_windows, im_windows_dim, piv_data.window_sizes[pass], env.U, env.V, piv_data.arrSize[pass], activate_subpixel, env);
+            if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
+
+            debug_message("Saving data", 2, DEBUG_LVL);
+            add_pass_data_to_file(pass, outputFile, piv_data, env);
 
         }
 
@@ -138,7 +178,7 @@ int main(int argc, char* argv[]) {
 
 
     }
-
+    debug_message("Program finished", 0, DEBUG_LVL);
     return 0;
 }
 
