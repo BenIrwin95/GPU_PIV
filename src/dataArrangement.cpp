@@ -30,10 +30,8 @@ int2 idx;
 idx.x = gid[0]*strideDim.x + lid[0];
 idx.y = gid[1]*strideDim.y + lid[1];
 
-// idx.x += offsets[idx_og].x;
-// idx.y += offsets[idx_og].y;
-
-
+idx.x += offsets[idx_og].x;
+idx.y += offsets[idx_og].y;
 
 
 
@@ -43,6 +41,7 @@ if(idx.x < 0 || idx.x >= inputDim.x || idx.y < 0 || idx.y >= inputDim.y){
 } else {
     output[idx_output] = input[idx.y*inputDim.x + idx.x];
 }
+
 }
 
 )KERN_END";

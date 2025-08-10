@@ -85,6 +85,16 @@ void determine_image_shifts(int pass, PIVdata& piv_data, OpenCL_env& env, std::v
             imageShifts[i*im_width + j].s[1] = std::round(interpolate_2Dspline(j, i, splineV));
         }
     }
+    #pragma omp parallel for
+    for(int i=0;i<piv_data.arrSize[pass].s[1];i++){
+        for(int j=0;j<piv_data.arrSize[pass].s[0];j++){
+            piv_data.U[pass][i*piv_data.arrSize[pass].s[0] + j] = interpolate_2Dspline(piv_data.x_d[pass][j], piv_data.y_d[pass][i], splineU);
+            piv_data.V[pass][i*piv_data.arrSize[pass].s[0] + j] = interpolate_2Dspline(piv_data.x_d[pass][j], piv_data.y_d[pass][i], splineV);
+        }
+    }
     env.queue.enqueueWriteBuffer( env.imageShifts, CL_TRUE, 0, imageShifts.size()*sizeof(cl_int2), imageShifts.data());
+    const size_t gridSizeBytes = piv_data.arrSize[pass].s[0]*piv_data.arrSize[pass].s[1]*sizeof(float);
+    env.queue.enqueueWriteBuffer( env.U, CL_TRUE, 0, gridSizeBytes, piv_data.U[pass].data());
+    env.queue.enqueueWriteBuffer( env.V, CL_TRUE, 0, gridSizeBytes, piv_data.V[pass].data());
 }
 

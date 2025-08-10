@@ -166,8 +166,11 @@ int main(int argc, char* argv[]) {
             if(pass>0){
                 determine_image_shifts(pass, piv_data, env, imageShifts, im_ref.width, im_ref.height);
                 err = warped_tile_data(env.im2_complex, im2.dims, env.im2_windows, piv_data.window_sizes[pass], piv_data.window_shifts[pass], piv_data.arrSize[pass], env);
+                //err = uniformly_tile_data(env.im2_complex, im2.dims, env.im2_windows, piv_data.window_sizes[pass], piv_data.window_shifts[pass], piv_data.arrSize[pass], env);
                 if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
             } else {
+                std::fill(piv_data.U[pass].begin(), piv_data.U[pass].end(), 0);
+                std::fill(piv_data.V[pass].begin(), piv_data.V[pass].end(), 0);
                 err = uniformly_tile_data(env.im2_complex, im2.dims, env.im2_windows, piv_data.window_sizes[pass], piv_data.window_shifts[pass], piv_data.arrSize[pass], env);
                 if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
             }
