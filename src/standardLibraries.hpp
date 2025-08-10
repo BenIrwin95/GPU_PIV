@@ -14,5 +14,8 @@
 #define CL_HPP_ENABLE_EXCEPTIONS
 #include <CL/opencl.hpp>
 #include <tiffio.h>
+#include "alglib/stdafx.h"
+#include <alglib/interpolation.h>
+#include <omp.h>
 
 #endif

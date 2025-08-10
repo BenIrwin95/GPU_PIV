@@ -33,6 +33,16 @@ cl_int uploadImage_and_convert_to_complex(ImageData& im, OpenCL_env& env, cl::Bu
 //--------------------------------------------------------------------------------
 
 cl_int uniformly_tile_data(cl::Buffer& input, cl_int2 inputDim, cl::Buffer& output, int windowSize, int window_shift, cl_int2 arrSize, OpenCL_env& env);
+cl_int warped_tile_data(cl::Buffer& input, cl_int2 inputDim, cl::Buffer& output, int windowSize, int window_shift, cl_int2 arrSize, OpenCL_env& env);
+//--------------------------------------------------------------------------------
+//--------------------------Bspline_interpolation---------------------------------
+//--------------------------------------------------------------------------------
+
+
+alglib::spline2dinterpolant create_interpolater(std::vector<double>& X, std::vector<double>& Y, std::vector<double>& C);
+splineInterp create2DSplineInterp(std::vector<double>& x, std::vector<double>& y, std::vector<double>& C);
+double interpolate_2Dspline(double x, double y, splineInterp& spline);
+void determine_image_shifts(int pass, PIVdata& piv_data, OpenCL_env& env, std::vector<cl_int2>& imageShifts, uint32_t im_width, uint32_t im_height);
 
 //--------------------------------------------------------------------------------
 //------------------------------------FFT-----------------------------------------

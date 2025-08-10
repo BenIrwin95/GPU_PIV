@@ -83,11 +83,13 @@ void print_cl_error(cl_int err, const std::string& filename, int line_number) {
 cl_int inititialise_OpenCL_buffers(OpenCL_env& env, PIVdata& piv_data, ImageData& im){
     cl_int err = CL_SUCCESS;
     uint32_t maxArrLen=0;
+    cl_int2 maxArrSize;
     uint32_t max_ImWindowed_Len=0;
     for(int i=0;i<piv_data.N_pass;i++){
         uint32_t arrLen = piv_data.arrSize[i].s[0]*piv_data.arrSize[i].s[1];
         if(arrLen > maxArrLen){
             maxArrLen = arrLen;
+            maxArrSize = piv_data.arrSize[i];
         }
         uint32_t ImWindowed_Len = arrLen * (piv_data.window_sizes[i]*piv_data.window_sizes[i]);
         if(ImWindowed_Len > max_ImWindowed_Len){
@@ -105,6 +107,7 @@ cl_int inititialise_OpenCL_buffers(OpenCL_env& env, PIVdata& piv_data, ImageData
     env.U = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrLen*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
     env.V = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrLen*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
     env.flags = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrLen*sizeof(int), NULL, &err); if(err != CL_SUCCESS){return err;}
+    env.imageShifts = cl::Buffer(env.context, CL_MEM_READ_WRITE, im.width*im.height*sizeof(cl_int2), NULL, &err); if(err != CL_SUCCESS){return err;}
 
     return err;
 }

@@ -77,14 +77,15 @@ int main(int argc, char* argv[]) {
     // load first image to find its size and data type
     ImageData im_ref = readTiffToAppropriateIntegerVector(fmt::format(fmt::runtime(im1_filepath_template), 1));
     //std::cout << fmt::format(fmt::runtime(im1_filepath_template),1) << " loaded. Size: " << im1.width << "x" << im1.height << std::endl;
+    std::vector<cl_int2> imageShifts(im_ref.width*im_ref.height);
 
     // iterate through the passes to see what the size of our data structures will be
     piv_data.arrSize.resize(piv_data.N_pass);
     piv_data.window_shifts.resize(piv_data.N_pass);
-    piv_data.X.resize(piv_data.N_pass);
-    piv_data.Y.resize(piv_data.N_pass);
-    piv_data.U.resize(piv_data.N_pass);
-    piv_data.V.resize(piv_data.N_pass);
+    piv_data.X.resize(piv_data.N_pass);piv_data.x_d.resize(piv_data.N_pass);
+    piv_data.Y.resize(piv_data.N_pass);piv_data.y_d.resize(piv_data.N_pass);
+    piv_data.U.resize(piv_data.N_pass);piv_data.U_d.resize(piv_data.N_pass);
+    piv_data.V.resize(piv_data.N_pass);piv_data.V_d.resize(piv_data.N_pass);
     for(int k=0;k<piv_data.N_pass;k++){
         int windowSize = piv_data.window_sizes[k];
         double overlap = 0.5;
@@ -93,16 +94,23 @@ int main(int argc, char* argv[]) {
         piv_data.arrSize[k].s[0] = floor((im_ref.width-windowSize)/window_shift);
         piv_data.arrSize[k].s[1] = floor((im_ref.height-windowSize)/window_shift);
         uint32_t arrLen = piv_data.arrSize[k].s[0] * piv_data.arrSize[k].s[1];
-        piv_data.X[k].resize(arrLen);
-        piv_data.Y[k].resize(arrLen);
-        piv_data.U[k].resize(arrLen);
-        piv_data.V[k].resize(arrLen);
+        piv_data.X[k].resize(arrLen);piv_data.x_d[k].resize(piv_data.arrSize[k].s[0]);
+        piv_data.Y[k].resize(arrLen);piv_data.y_d[k].resize(piv_data.arrSize[k].s[1]);
+        piv_data.U[k].resize(arrLen);piv_data.U_d[k].resize(arrLen);
+        piv_data.V[k].resize(arrLen);piv_data.V_d[k].resize(arrLen);
         // populate grids
         for(int i=0;i<piv_data.arrSize[k].s[1];i++){
             for(int j=0;j<piv_data.arrSize[k].s[0];j++){
-                piv_data.X[k][i*piv_data.arrSize[k].s[0] + j] = (float)windowSize/2 + j*window_shift;
-                piv_data.Y[k][i*piv_data.arrSize[k].s[0] + j] = (float)windowSize/2 + i*window_shift;
+                int idx = i*piv_data.arrSize[k].s[0] + j;
+                piv_data.X[k][idx] = (float)windowSize/2 + j*window_shift;
+                piv_data.Y[k][idx] = (float)windowSize/2 + i*window_shift;
             }
+        }
+        for(int j=0;j<piv_data.arrSize[k].s[0];j++){
+            piv_data.x_d[k][j] = static_cast<double>(piv_data.X[k][j]);
+        }
+        for(int i=0;i<piv_data.arrSize[k].s[1];i++){
+            piv_data.y_d[k][i] = static_cast<double>(piv_data.Y[k][i*piv_data.arrSize[k].s[0]]);
         }
 
     }
@@ -151,10 +159,23 @@ int main(int argc, char* argv[]) {
 
             // divide image into tiles
             debug_message("Dividing image into tiles", 2, DEBUG_LVL);
+            debug_message("image 1", 3, DEBUG_LVL);
             err = uniformly_tile_data(env.im1_complex, im1.dims, env.im1_windows, piv_data.window_sizes[pass], piv_data.window_shifts[pass], piv_data.arrSize[pass], env);
             if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
-            err = uniformly_tile_data(env.im2_complex, im2.dims, env.im2_windows, piv_data.window_sizes[pass], piv_data.window_shifts[pass], piv_data.arrSize[pass], env);
-            if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
+            debug_message("image 2", 3, DEBUG_LVL);
+            if(pass>0){
+                determine_image_shifts(pass, piv_data, env, imageShifts, im_ref.width, im_ref.height);
+                err = warped_tile_data(env.im2_complex, im2.dims, env.im2_windows, piv_data.window_sizes[pass], piv_data.window_shifts[pass], piv_data.arrSize[pass], env);
+                if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
+            } else {
+                err = uniformly_tile_data(env.im2_complex, im2.dims, env.im2_windows, piv_data.window_sizes[pass], piv_data.window_shifts[pass], piv_data.arrSize[pass], env);
+                if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
+            }
+
+
+
+
+
 
             // compute correlation
             debug_message("Computing correlation", 2, DEBUG_LVL);

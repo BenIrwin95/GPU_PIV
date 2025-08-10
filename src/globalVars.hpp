@@ -11,6 +11,11 @@ extern const std::string kernelSource_complexMaths;
 extern const std::string kernelSource_determineCorrelation;
 extern const std::string kernelSource_vectorValidation;
 
+
+
+
+
+
 struct PIVdata {
     int N_pass;
     std::vector<int> window_sizes;
@@ -19,7 +24,27 @@ struct PIVdata {
     std::vector<std::vector<float>> Y;
     std::vector<std::vector<float>> U;
     std::vector<std::vector<float>> V;
+    // also need data in double form for spline interpolation
+    std::vector<std::vector<double>> x_d; // x and y are just a 1d array of the x and y coordinates along each side. They are NOT a flattened 2D vector
+    std::vector<std::vector<double>> y_d;
+    std::vector<std::vector<double>> U_d;
+    std::vector<std::vector<double>> V_d;
     std::vector<cl_int2> arrSize;
+};
+
+
+struct splineInterp{
+    alglib::spline2dinterpolant s;
+    double min_x;
+    double max_x;
+    double min_y;
+    double max_y;
+    int nx;
+    int ny;
+    std::vector<double>& x;
+    std::vector<double>& y;
+    std::vector<double>& C;
+    splineInterp(std::vector<double>& x_ref, std::vector<double>& y_ref, std::vector<double>& C_ref) : x(x_ref), y(y_ref), C(C_ref) {}
 };
 
 
@@ -49,6 +74,10 @@ struct ImageData {
 
 
 
+
+
+
+
 struct OpenCL_env {
     cl::Platform platform;            // OpenCL platform
     cl::Device device_id;             // device ID
@@ -59,6 +88,7 @@ struct OpenCL_env {
     // kernels
     cl::Kernel kernel_convert_im_to_complex;
     cl::Kernel kernel_uniform_tiling;
+    cl::Kernel kernel_warped_tiling;
     cl::Kernel kernel_FFT_1D;
     cl::Kernel kernel_complex_multiply_conjugate_norm;
     cl::Kernel kernel_findMaxCorr;
@@ -77,6 +107,7 @@ struct OpenCL_env {
     cl::Buffer U;
     cl::Buffer V;
     cl::Buffer flags;
+    cl::Buffer imageShifts;
 
 
     // constructor (this will automatically setup the OpenCL environment for this project)
@@ -158,6 +189,7 @@ struct OpenCL_env {
         try {
             kernel_convert_im_to_complex = cl::Kernel(program, "convert_to_float2");
             kernel_uniform_tiling = cl::Kernel(program, "uniform_tiling");
+            kernel_warped_tiling = cl::Kernel(program, "warped_tiling");
             kernel_FFT_1D = cl::Kernel(program, "FFT_1D");
             kernel_complex_multiply_conjugate_norm = cl::Kernel(program, "complex_multiply_conjugate_norm");
             kernel_findMaxCorr = cl::Kernel(program, "findMaxCorr");
