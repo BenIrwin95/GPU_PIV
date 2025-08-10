@@ -169,7 +169,7 @@ ImageData readTiffToAppropriateIntegerVector(const std::string& filePath) {
 //__kernel void convert_to_float2(__global const uchar* input_data, __global float2* output_data, int N) {
 
 cl_int uploadImage_and_convert_to_complex(ImageData& im, OpenCL_env& env, cl::Buffer& buffer, cl::Buffer& buffer_complex){
-    cl_int err;
+    cl_int err =CL_SUCCESS;
 
     // due to the unknown type of the data, this extra step is needed
     const void* host_ptr = std::visit([](const auto& vec) -> const void* {return vec.data();}, im.pixelData);
@@ -198,7 +198,7 @@ cl_int uploadImage_and_convert_to_complex(ImageData& im, OpenCL_env& env, cl::Bu
     }
     env.queue.finish();
 
-    return CL_SUCCESS;
+    return err;
 }
 
 

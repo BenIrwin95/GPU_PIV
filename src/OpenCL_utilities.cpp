@@ -104,6 +104,7 @@ cl_int inititialise_OpenCL_buffers(OpenCL_env& env, PIVdata& piv_data, ImageData
     env.Y = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrLen*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
     env.U = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrLen*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
     env.V = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrLen*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
+    env.flags = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrLen*sizeof(int), NULL, &err); if(err != CL_SUCCESS){return err;}
 
     return err;
 }

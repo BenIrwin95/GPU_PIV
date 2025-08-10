@@ -168,6 +168,11 @@ int main(int argc, char* argv[]) {
             err = find_max_corr(env.im1_windows, im_windows_dim, piv_data.window_sizes[pass], env.U, env.V, piv_data.arrSize[pass], activate_subpixel, env);
             if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
 
+            // validate and fix bad vectors
+            debug_message("Validating vectors", 2, DEBUG_LVL);
+            err = validateVectors(pass, piv_data, env);
+            if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
+
             debug_message("Saving data", 2, DEBUG_LVL);
             add_pass_data_to_file(pass, outputFile, piv_data, env);
 

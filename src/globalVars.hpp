@@ -9,6 +9,7 @@ extern const std::string kernelSource_dataArrangement;
 extern const std::string kernelSource_FFT;
 extern const std::string kernelSource_complexMaths;
 extern const std::string kernelSource_determineCorrelation;
+extern const std::string kernelSource_vectorValidation;
 
 struct PIVdata {
     int N_pass;
@@ -61,6 +62,8 @@ struct OpenCL_env {
     cl::Kernel kernel_FFT_1D;
     cl::Kernel kernel_complex_multiply_conjugate_norm;
     cl::Kernel kernel_findMaxCorr;
+    cl::Kernel kernel_identifyInvalidVectors;
+    cl::Kernel kernel_correctInvalidVectors;
 
     // memory structures for working on GPU
     cl::Buffer im1;
@@ -73,6 +76,7 @@ struct OpenCL_env {
     cl::Buffer Y;
     cl::Buffer U;
     cl::Buffer V;
+    cl::Buffer flags;
 
 
     // constructor (this will automatically setup the OpenCL environment for this project)
@@ -123,6 +127,7 @@ struct OpenCL_env {
             sources.push_back({kernelSource_dataArrangement.c_str(), kernelSource_dataArrangement.length()});
             sources.push_back({kernelSource_FFT.c_str(), kernelSource_FFT.length()});
             sources.push_back({kernelSource_determineCorrelation.c_str(), kernelSource_determineCorrelation.length()});
+            sources.push_back({kernelSource_vectorValidation.c_str(), kernelSource_vectorValidation.length()});
             program = cl::Program(context, sources);
 
         } catch (cl::Error& e) {
@@ -156,6 +161,8 @@ struct OpenCL_env {
             kernel_FFT_1D = cl::Kernel(program, "FFT_1D");
             kernel_complex_multiply_conjugate_norm = cl::Kernel(program, "complex_multiply_conjugate_norm");
             kernel_findMaxCorr = cl::Kernel(program, "findMaxCorr");
+            kernel_identifyInvalidVectors = cl::Kernel(program, "identifyInvalidVectors");
+            kernel_correctInvalidVectors = cl::Kernel(program, "correctInvalidVectors");
             // Kernel creation was successful
         } catch (cl::Error& e) {
             std::cerr << "Error creating kernels: " << e.what() << " (" << e.err() << ")" << std::endl;

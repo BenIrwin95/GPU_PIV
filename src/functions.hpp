@@ -46,8 +46,17 @@ cl_int FFT2D_tiled(cl::Buffer& input, cl_int2 inputDim, int windowSize, int dir,
 
 cl_int FFT_corr_tiled(cl::Buffer& input1, cl::Buffer& input2, cl_int2 inputDim, int windowSize, OpenCL_env& env);
 cl_int find_max_corr(cl::Buffer& input, cl_int2 inputDim, int windowSize, cl::Buffer& outputU, cl::Buffer& outputV, cl_int2 arrSize, int activate_subpixel, OpenCL_env& env);
+
+
 //--------------------------------------------------------------------------------
-//----------------------------determineCorrelation--------------------------------
+//-------------------------------vectorValidation---------------------------------
+//--------------------------------------------------------------------------------
+
+cl_int validateVectors(int pass, PIVdata& piv_data, OpenCL_env& env);
+
+
+//--------------------------------------------------------------------------------
+//-------------------------------outputFunctions----------------------------------
 //--------------------------------------------------------------------------------
 void add_pass_data_to_file(int pass, std::ofstream& outputFile, PIVdata& piv_data, OpenCL_env& env);
 
