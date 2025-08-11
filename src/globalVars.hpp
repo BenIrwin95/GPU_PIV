@@ -87,6 +87,8 @@ struct OpenCL_env {
     cl_int status;
     // kernels
     cl::Kernel kernel_convert_im_to_complex;
+    cl::Kernel kernel_convert_im_to_complex_uint16;
+    cl::Kernel kernel_convert_im_to_complex_uint32;
     cl::Kernel kernel_uniform_tiling;
     cl::Kernel kernel_warped_tiling;
     cl::Kernel kernel_FFT_1D;
@@ -188,6 +190,8 @@ struct OpenCL_env {
         // kernel creation
         try {
             kernel_convert_im_to_complex = cl::Kernel(program, "convert_to_float2");
+            kernel_convert_im_to_complex_uint16 = cl::Kernel(program, "convert_uint16_to_float2");
+            kernel_convert_im_to_complex_uint32 = cl::Kernel(program, "convert_uint32_to_float2");
             kernel_uniform_tiling = cl::Kernel(program, "uniform_tiling");
             kernel_warped_tiling = cl::Kernel(program, "warped_tiling");
             kernel_FFT_1D = cl::Kernel(program, "FFT_1D");

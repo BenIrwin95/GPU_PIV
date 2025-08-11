@@ -24,6 +24,42 @@ __kernel void convert_to_float2(__global const uchar* input_data, __global float
 }
 
 
+__kernel void convert_uint16_to_float2(__global const ushort* input_data, __global float2* output_data, int N) {
+    int gid = get_global_id(0);
+
+    if(gid<N){
+        // Read the uint8_t data
+        uchar val_uchar = input_data[gid];
+
+        // Convert to a float
+        float val_float = (float)val_uchar;
+
+        // Create the cl_float2 vector with the s[0] element as the float value and s[1] as 0.0f
+        float2 result_vec = (float2)(val_float, 0.0f);
+
+        // Write the result to the output array
+        output_data[gid] = result_vec;
+    }
+}
+
+__kernel void convert_uint32_to_float2(__global const uint* input_data, __global float2* output_data, int N) {
+    int gid = get_global_id(0);
+
+    if(gid<N){
+        // Read the uint8_t data
+        uchar val_uchar = input_data[gid];
+
+        // Convert to a float
+        float val_float = (float)val_uchar;
+
+        // Create the cl_float2 vector with the s[0] element as the float value and s[1] as 0.0f
+        float2 result_vec = (float2)(val_float, 0.0f);
+
+        // Write the result to the output array
+        output_data[gid] = result_vec;
+    }
+}
+
 )";
 
 
@@ -178,6 +214,24 @@ ImageData readTiffToAppropriateIntegerVector(const std::string& filePath) {
 
 cl_int uploadImage_and_convert_to_complex(ImageData& im, OpenCL_env& env, cl::Buffer& buffer, cl::Buffer& buffer_complex){
     cl_int err =CL_SUCCESS;
+
+    cl::Kernel correct_kernel;
+    switch (im.type) {
+        case ImageData::DataType::UINT8:
+            correct_kernel = env.kernel_convert_im_to_complex;
+            break;
+        case ImageData::DataType::UINT16:
+            correct_kernel = env.kernel_convert_im_to_complex_uint16;
+            break;
+        case ImageData::DataType::UINT32:
+            correct_kernel = env.kernel_convert_im_to_complex_uint32;
+            break;
+        case ImageData::DataType::UNKNOWN:
+        default:
+            std::cout << "Data type is unknown or unsupported." << std::endl;
+            return CL_INVALID_IMAGE_FORMAT_DESCRIPTOR;
+    }
+
 
     // due to the unknown type of the data, this extra step is needed
     const void* host_ptr = std::visit([](const auto& vec) -> const void* {return vec.data();}, im.pixelData);
