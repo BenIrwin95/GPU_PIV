@@ -14,7 +14,7 @@ LDFLAGS = -L/usr/local/lib -L/usr/local/lib64
 LIBS = -ltiff -lm -lOpenCL -lfmt -lalglib
 
 # C++ source files
-SRCS = ./src/main.cpp ./src/OpenCL_utilities.cpp ./src/inputFunctions.cpp ./src/tiffFunctions.cpp ./src/dataArrangement.cpp ./src/Bspline_interpolation.cpp ./src/FFT.cpp ./src/complexMaths.cpp ./src/determineCorrelation.cpp ./src/vectorValidation.cpp ./src/outputFunctions.cpp
+SRCS = ./src/main.cpp ./src/OpenCL_utilities.cpp ./src/inputFunctions.cpp ./src/tiffFunctions.cpp ./src/dataArrangement.cpp ./src/bicubic_interpolation.cpp ./src/FFT.cpp ./src/complexMaths.cpp ./src/determineCorrelation.cpp ./src/vectorValidation.cpp ./src/outputFunctions.cpp
 
 # the object files
 OBJS = $(SRCS:.cpp=.o)

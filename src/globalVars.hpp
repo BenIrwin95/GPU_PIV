@@ -33,7 +33,7 @@ struct PIVdata {
 };
 
 
-struct splineInterp{
+struct bicubicInterp{
     alglib::spline2dinterpolant s;
     double min_x;
     double max_x;
@@ -44,7 +44,7 @@ struct splineInterp{
     std::vector<double>& x;
     std::vector<double>& y;
     std::vector<double>& C;
-    splineInterp(std::vector<double>& x_ref, std::vector<double>& y_ref, std::vector<double>& C_ref) : x(x_ref), y(y_ref), C(C_ref) {}
+    bicubicInterp(std::vector<double>& x_ref, std::vector<double>& y_ref, std::vector<double>& C_ref) : x(x_ref), y(y_ref), C(C_ref) {}
 };
 
 
