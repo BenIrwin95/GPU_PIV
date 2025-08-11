@@ -107,8 +107,10 @@ ImageData readTiffToAppropriateIntegerVector(const std::string& filePath) {
                 TIFFClose(tif);
                 throw std::runtime_error("Error: Failed to read scanline " + std::to_string(row));
             }
+            size_t dest_row = height - 1 - row;
+            size_t offset = dest_row * width;
             // Copy the data from the scanline buffer to the vector
-            std::copy(scanlineBuffer, scanlineBuffer + width, data.begin() + (static_cast<size_t>(row) * width));
+            std::copy(scanlineBuffer, scanlineBuffer + width, data.begin() + offset);
         }
         _TIFFfree(scanlineBuffer);
         imageData.pixelData = data; // Assign the vector to the variant
@@ -128,7 +130,10 @@ ImageData readTiffToAppropriateIntegerVector(const std::string& filePath) {
                 TIFFClose(tif);
                 throw std::runtime_error("Error: Failed to read scanline " + std::to_string(row));
             }
-            std::copy(scanlineBuffer, scanlineBuffer + width, data.begin() + (static_cast<size_t>(row) * width));
+            size_t dest_row = height - 1 - row;
+            size_t offset = dest_row * width;
+            // Copy the data from the scanline buffer to the vector
+            std::copy(scanlineBuffer, scanlineBuffer + width, data.begin() + offset);
         }
         _TIFFfree(scanlineBuffer);
         imageData.pixelData = data;
@@ -148,7 +153,10 @@ ImageData readTiffToAppropriateIntegerVector(const std::string& filePath) {
                 TIFFClose(tif);
                 throw std::runtime_error("Error: Failed to read scanline " + std::to_string(row));
             }
-            std::copy(scanlineBuffer, scanlineBuffer + width, data.begin() + (static_cast<size_t>(row) * width));
+            size_t dest_row = height - 1 - row;
+            size_t offset = dest_row * width;
+            // Copy the data from the scanline buffer to the vector
+            std::copy(scanlineBuffer, scanlineBuffer + width, data.begin() + offset);
         }
         _TIFFfree(scanlineBuffer);
         imageData.pixelData = data;
