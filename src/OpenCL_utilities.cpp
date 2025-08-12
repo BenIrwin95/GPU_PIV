@@ -102,12 +102,32 @@ cl_int inititialise_OpenCL_buffers(OpenCL_env& env, PIVdata& piv_data, ImageData
     env.im2_complex = cl::Buffer(env.context, CL_MEM_READ_WRITE, im.width*im.height*sizeof(cl_float2), NULL, &err); if(err != CL_SUCCESS){return err;}
     env.im1_windows = cl::Buffer(env.context, CL_MEM_READ_WRITE, max_ImWindowed_Len*sizeof(cl_float2), NULL, &err); if(err != CL_SUCCESS){return err;}
     env.im2_windows = cl::Buffer(env.context, CL_MEM_READ_WRITE, max_ImWindowed_Len*sizeof(cl_float2), NULL, &err); if(err != CL_SUCCESS){return err;}
-    env.X = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrLen*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
-    env.Y = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrLen*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
     env.U = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrLen*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
     env.V = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrLen*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
     env.flags = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrLen*sizeof(int), NULL, &err); if(err != CL_SUCCESS){return err;}
+
+    env.x_ref = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrSize.s[0]*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
+    env.y_ref = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrSize.s[1]*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
+    env.U_ref = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrLen*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
+    env.V_ref = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrLen*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
+    env.x_vals = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrSize.s[0]*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
+    env.y_vals = cl::Buffer(env.context, CL_MEM_READ_WRITE, maxArrSize.s[1]*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
+
     env.imageShifts = cl::Buffer(env.context, CL_MEM_READ_WRITE, im.width*im.height*sizeof(cl_int2), NULL, &err); if(err != CL_SUCCESS){return err;}
+
+    // some useful stuff for image interpolation that we will never need to change
+    env.x_vals_im = cl::Buffer(env.context, CL_MEM_READ_ONLY, im.width*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
+    env.y_vals_im = cl::Buffer(env.context, CL_MEM_READ_ONLY, im.height*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
+    std::vector<float> im_idx_x(im.width);
+    std::vector<float> im_idx_y(im.height);
+    for(int i=0;i<im_idx_x.size();i++){
+        im_idx_x[i] = i;
+    }
+    for(int i=0;i<im_idx_y.size();i++){
+        im_idx_y[i] = i;
+    }
+    env.queue.enqueueWriteBuffer( env.x_vals_im, CL_TRUE, 0, im_idx_x.size()*sizeof(float), im_idx_x.data());
+    env.queue.enqueueWriteBuffer( env.y_vals_im, CL_TRUE, 0, im_idx_y.size()*sizeof(float), im_idx_y.data());
 
     return err;
 }

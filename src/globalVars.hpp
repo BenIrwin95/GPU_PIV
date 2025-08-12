@@ -26,10 +26,8 @@ struct PIVdata {
     std::vector<std::vector<float>> U;
     std::vector<std::vector<float>> V;
     // also need data in double form for spline interpolation
-    std::vector<std::vector<double>> x_d; // x and y are just a 1d array of the x and y coordinates along each side. They are NOT a flattened 2D vector
-    std::vector<std::vector<double>> y_d;
-    std::vector<std::vector<double>> U_d;
-    std::vector<std::vector<double>> V_d;
+    std::vector<std::vector<float>> x; // x and y are just a 1d array of the x and y coordinates along each side. They are NOT a flattened 2D vector
+    std::vector<std::vector<float>> y;
     std::vector<cl_int2> arrSize;
 };
 
@@ -106,11 +104,20 @@ struct OpenCL_env {
     cl::Buffer im2_complex;
     cl::Buffer im1_windows;
     cl::Buffer im2_windows;
-    cl::Buffer X;
-    cl::Buffer Y;
+    // cl::Buffer X;
+    // cl::Buffer Y;
     cl::Buffer U;
     cl::Buffer V;
     cl::Buffer flags;
+    // bicubic interpolation
+    cl::Buffer x_vals;
+    cl::Buffer y_vals;
+    cl::Buffer x_vals_im;
+    cl::Buffer y_vals_im;
+    cl::Buffer x_ref;
+    cl::Buffer y_ref;
+    cl::Buffer U_ref;
+    cl::Buffer V_ref;
     cl::Buffer imageShifts;
 
 

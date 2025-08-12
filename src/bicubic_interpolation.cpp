@@ -198,7 +198,37 @@ double interpolate_2D_bicubic(double x, double y, bicubicInterp& bicubic){
 }
 
 
+cl_int2 determine_image_shifts(int pass, PIVdata& piv_data, OpenCL_env& env, std::vector<cl_int2>& imageShifts, uint32_t im_width, uint32_t im_height){
+    // load correct ref vals to GPU
+    env.queue.enqueueWriteBuffer( env.x_ref, CL_TRUE, 0, piv_data.x[pass-1].size()*sizeof(float), piv_data.x[pass-1].data());
+    env.queue.enqueueWriteBuffer( env.y_ref, CL_TRUE, 0, piv_data.y[pass-1].size()*sizeof(float), piv_data.y[pass-1].data());
+    env.queue.enqueueWriteBuffer( env.U_ref, CL_TRUE, 0, piv_data.U[pass-1].size()*sizeof(float), piv_data.U[pass-1].data());
+    env.queue.enqueueWriteBuffer( env.V_ref, CL_TRUE, 0, piv_data.V[pass-1].size()*sizeof(float), piv_data.V[pass-1].data());
 
+    cl_int2 outputDims;
+    outputDims.s[0] = im_width;outputDims.s[1] = im_height;
+
+    int localSize[2] = {8,8};
+    int numGroups[2] = {(int)ceil((float)outputDims.s[0]/localSize[0]), (int)ceil((float)outputDims.s[1]/localSize[1])};
+    int globalSize[2] = {numGroups[0]*localSize[0], numGroups[1]*localSize[1]};
+    try {err = env.kernel_bicubic_interpolation.setArg(0, env.x_vals_im);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 0" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_bicubic_interpolation.setArg(1, env.y_vals_im);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 1" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    // try {err = env.kernel_bicubic_interpolation.setArg(2, x_ref);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 2" << std::endl;CHECK_CL_ERROR(e.err());return 1;}
+    // try {err = env.kernel_bicubic_interpolation.setArg(3, y_ref);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 3" << std::endl;CHECK_CL_ERROR(e.err());return 1;}
+    // try {err = env.kernel_bicubic_interpolation.setArg(4, sizeof(cl_int2), &refDims);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 4" << std::endl;CHECK_CL_ERROR(e.err());return 1;}
+    // try {err = env.kernel_bicubic_interpolation.setArg(5, C_ref);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 3" << std::endl;CHECK_CL_ERROR(e.err());return 1;}
+    // try {err = env.kernel_bicubic_interpolation.setArg(6, output);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 5" << std::endl;CHECK_CL_ERROR(e.err());return 1;}
+    // try {err = env.kernel_bicubic_interpolation.setArg(7, sizeof(cl_int2), &outputDims);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 6" << std::endl;CHECK_CL_ERROR(e.err());return 1;}
+    // cl::NDRange local(localSize[0], localSize[1]);
+    // cl::NDRange global(globalSize[0], globalSize[1]);
+    // std::cout << "running kernel" << std::endl;
+    // try{env.queue.enqueueNDRangeKernel(env.kernel_bicubic_interpolation, cl::NullRange, global, local);} catch (cl::Error& e) {std::cerr << "Error Enqueuing kernel_bicubic_interpolation" << std::endl;CHECK_CL_ERROR(e.err());return 1;}
+    // env.queue.finish();
+}
+
+
+
+/*
 void determine_image_shifts(int pass, PIVdata& piv_data, OpenCL_env& env, std::vector<cl_int2>& imageShifts, uint32_t im_width, uint32_t im_height){
     std::copy( piv_data.U[pass-1].begin(), piv_data.U[pass-1].end(), piv_data.U_d[pass-1].begin() );
     std::copy( piv_data.V[pass-1].begin(), piv_data.V[pass-1].end(), piv_data.V_d[pass-1].begin() );
@@ -222,5 +252,33 @@ void determine_image_shifts(int pass, PIVdata& piv_data, OpenCL_env& env, std::v
     const size_t gridSizeBytes = piv_data.arrSize[pass].s[0]*piv_data.arrSize[pass].s[1]*sizeof(float);
     env.queue.enqueueWriteBuffer( env.U, CL_TRUE, 0, gridSizeBytes, piv_data.U[pass].data());
     env.queue.enqueueWriteBuffer( env.V, CL_TRUE, 0, gridSizeBytes, piv_data.V[pass].data());
-}
+}*/
+
+
+
+/*
+void determine_image_shifts(int pass, PIVdata& piv_data, OpenCL_env& env, std::vector<cl_int2>& imageShifts, uint32_t im_width, uint32_t im_height){
+    std::copy( piv_data.U[pass-1].begin(), piv_data.U[pass-1].end(), piv_data.U_d[pass-1].begin() );
+    std::copy( piv_data.V[pass-1].begin(), piv_data.V[pass-1].end(), piv_data.V_d[pass-1].begin() );
+    bicubicInterp bicubicU =  create2DSplineInterp(piv_data.x_d[pass-1], piv_data.y_d[pass-1], piv_data.U_d[pass-1]);
+    bicubicInterp bicubicV =  create2DSplineInterp(piv_data.x_d[pass-1], piv_data.y_d[pass-1], piv_data.V_d[pass-1]);
+    #pragma omp parallel for
+    for(uint32_t i=0;i<im_height;i++){
+        for(uint32_t j=0;j<im_width;j++){
+            imageShifts[i*im_width + j].s[0] = std::round(interpolate_2D_bicubic(j, i, bicubicU));
+            imageShifts[i*im_width + j].s[1] = std::round(interpolate_2D_bicubic(j, i, bicubicV));
+        }
+    }
+    #pragma omp parallel for
+    for(int i=0;i<piv_data.arrSize[pass].s[1];i++){
+        for(int j=0;j<piv_data.arrSize[pass].s[0];j++){
+            piv_data.U[pass][i*piv_data.arrSize[pass].s[0] + j] = interpolate_2D_bicubic(piv_data.x_d[pass][j], piv_data.y_d[pass][i], bicubicU);
+            piv_data.V[pass][i*piv_data.arrSize[pass].s[0] + j] = interpolate_2D_bicubic(piv_data.x_d[pass][j], piv_data.y_d[pass][i], bicubicV);
+        }
+    }
+    env.queue.enqueueWriteBuffer( env.imageShifts, CL_TRUE, 0, imageShifts.size()*sizeof(cl_int2), imageShifts.data());
+    const size_t gridSizeBytes = piv_data.arrSize[pass].s[0]*piv_data.arrSize[pass].s[1]*sizeof(float);
+    env.queue.enqueueWriteBuffer( env.U, CL_TRUE, 0, gridSizeBytes, piv_data.U[pass].data());
+    env.queue.enqueueWriteBuffer( env.V, CL_TRUE, 0, gridSizeBytes, piv_data.V[pass].data());
+}*/
 

@@ -77,15 +77,15 @@ int main(int argc, char* argv[]) {
     // load first image to find its size and data type
     ImageData im_ref = readTiffToAppropriateIntegerVector(fmt::format(fmt::runtime(im1_filepath_template), 1));
     //std::cout << fmt::format(fmt::runtime(im1_filepath_template),1) << " loaded. Size: " << im1.width << "x" << im1.height << std::endl;
-    std::vector<cl_int2> imageShifts(im_ref.width*im_ref.height);
+    //std::vector<cl_int2> imageShifts(im_ref.width*im_ref.height);
 
     // iterate through the passes to see what the size of our data structures will be
     piv_data.arrSize.resize(piv_data.N_pass);
     piv_data.window_shifts.resize(piv_data.N_pass);
-    piv_data.X.resize(piv_data.N_pass);piv_data.x_d.resize(piv_data.N_pass);
-    piv_data.Y.resize(piv_data.N_pass);piv_data.y_d.resize(piv_data.N_pass);
-    piv_data.U.resize(piv_data.N_pass);piv_data.U_d.resize(piv_data.N_pass);
-    piv_data.V.resize(piv_data.N_pass);piv_data.V_d.resize(piv_data.N_pass);
+    piv_data.X.resize(piv_data.N_pass);piv_data.x.resize(piv_data.N_pass);
+    piv_data.Y.resize(piv_data.N_pass);piv_data.y.resize(piv_data.N_pass);
+    piv_data.U.resize(piv_data.N_pass);
+    piv_data.V.resize(piv_data.N_pass);
     for(int k=0;k<piv_data.N_pass;k++){
         int windowSize = piv_data.window_sizes[k];
         double overlap = 0.5;
@@ -94,10 +94,10 @@ int main(int argc, char* argv[]) {
         piv_data.arrSize[k].s[0] = floor((im_ref.width-windowSize)/window_shift);
         piv_data.arrSize[k].s[1] = floor((im_ref.height-windowSize)/window_shift);
         uint32_t arrLen = piv_data.arrSize[k].s[0] * piv_data.arrSize[k].s[1];
-        piv_data.X[k].resize(arrLen);piv_data.x_d[k].resize(piv_data.arrSize[k].s[0]);
-        piv_data.Y[k].resize(arrLen);piv_data.y_d[k].resize(piv_data.arrSize[k].s[1]);
-        piv_data.U[k].resize(arrLen);piv_data.U_d[k].resize(arrLen);
-        piv_data.V[k].resize(arrLen);piv_data.V_d[k].resize(arrLen);
+        piv_data.X[k].resize(arrLen);piv_data.x[k].resize(piv_data.arrSize[k].s[0]);
+        piv_data.Y[k].resize(arrLen);piv_data.y[k].resize(piv_data.arrSize[k].s[1]);
+        piv_data.U[k].resize(arrLen);
+        piv_data.V[k].resize(arrLen);
         // populate grids
         for(int i=0;i<piv_data.arrSize[k].s[1];i++){
             for(int j=0;j<piv_data.arrSize[k].s[0];j++){
@@ -107,10 +107,10 @@ int main(int argc, char* argv[]) {
             }
         }
         for(int j=0;j<piv_data.arrSize[k].s[0];j++){
-            piv_data.x_d[k][j] = static_cast<double>(piv_data.X[k][j]);
+            piv_data.x[k][j] = piv_data.X[k][j];
         }
         for(int i=0;i<piv_data.arrSize[k].s[1];i++){
-            piv_data.y_d[k][i] = static_cast<double>(piv_data.Y[k][i*piv_data.arrSize[k].s[0]]);
+            piv_data.y[k][i] = piv_data.Y[k][i*piv_data.arrSize[k].s[0]];
         }
 
     }
@@ -149,24 +149,22 @@ int main(int argc, char* argv[]) {
         }
         for(int pass=0;pass<piv_data.N_pass;pass++){
             debug_message(fmt::format("Pass {}",pass), 1, DEBUG_LVL);
-            // upload correct X and Y grid for this pass
-            const size_t gridSizeBytes = piv_data.arrSize[pass].s[0]*piv_data.arrSize[pass].s[1]*sizeof(float);
-            try{
-                env.queue.enqueueWriteBuffer( env.X, CL_TRUE, 0, gridSizeBytes, piv_data.X[pass].data());
-                env.queue.enqueueWriteBuffer( env.Y, CL_TRUE, 0, gridSizeBytes, piv_data.Y[pass].data());
-            } catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return 1;}
 
 
-            // divide image into tiles
+
+            //-------------------------------------------------------------------
+            //-------------------------------------------------------------------
+            //-------------------divide images into windows----------------------
+            //-------------------------------------------------------------------
+            //-------------------------------------------------------------------
             debug_message("Dividing image into tiles", 2, DEBUG_LVL);
             debug_message("image 1", 3, DEBUG_LVL);
             err = uniformly_tile_data(env.im1_complex, im1.dims, env.im1_windows, piv_data.window_sizes[pass], piv_data.window_shifts[pass], piv_data.arrSize[pass], env);
             if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
             debug_message("image 2", 3, DEBUG_LVL);
             if(pass>0){
-                determine_image_shifts(pass, piv_data, env, imageShifts, im_ref.width, im_ref.height);
+                //determine_image_shifts(pass, piv_data, env, imageShifts, im_ref.width, im_ref.height);
                 err = warped_tile_data(env.im2_complex, im2.dims, env.im2_windows, piv_data.window_sizes[pass], piv_data.window_shifts[pass], piv_data.arrSize[pass], env);
-                //err = uniformly_tile_data(env.im2_complex, im2.dims, env.im2_windows, piv_data.window_sizes[pass], piv_data.window_shifts[pass], piv_data.arrSize[pass], env);
                 if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
             } else {
                 std::fill(piv_data.U[pass].begin(), piv_data.U[pass].end(), 0);
@@ -178,9 +176,11 @@ int main(int argc, char* argv[]) {
 
 
 
-
-
-            // compute correlation
+            //-------------------------------------------------------------------
+            //-------------------------------------------------------------------
+            //----------------compute correlation and find peaks-----------------
+            //-------------------------------------------------------------------
+            //-------------------------------------------------------------------
             debug_message("Computing correlation", 2, DEBUG_LVL);
             cl_int2 im_windows_dim;
             im_windows_dim.s[0] = piv_data.arrSize[pass].s[0]*piv_data.window_sizes[pass];
