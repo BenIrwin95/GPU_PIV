@@ -10,6 +10,7 @@ extern const std::string kernelSource_FFT;
 extern const std::string kernelSource_complexMaths;
 extern const std::string kernelSource_determineCorrelation;
 extern const std::string kernelSource_vectorValidation;
+extern const std::string kernelSource_bicubic_interpolation;
 
 
 
@@ -89,6 +90,7 @@ struct OpenCL_env {
     cl::Kernel kernel_convert_im_to_complex;
     cl::Kernel kernel_convert_im_to_complex_uint16;
     cl::Kernel kernel_convert_im_to_complex_uint32;
+    cl::Kernel kernel_bicubic_interpolation;
     cl::Kernel kernel_uniform_tiling;
     cl::Kernel kernel_warped_tiling;
     cl::Kernel kernel_FFT_1D;
@@ -161,6 +163,7 @@ struct OpenCL_env {
             sources.push_back({kernelSource_FFT.c_str(), kernelSource_FFT.length()});
             sources.push_back({kernelSource_determineCorrelation.c_str(), kernelSource_determineCorrelation.length()});
             sources.push_back({kernelSource_vectorValidation.c_str(), kernelSource_vectorValidation.length()});
+            sources.push_back({kernelSource_bicubic_interpolation.c_str(), kernelSource_bicubic_interpolation.length()});
             program = cl::Program(context, sources);
 
         } catch (cl::Error& e) {
@@ -192,6 +195,7 @@ struct OpenCL_env {
             kernel_convert_im_to_complex = cl::Kernel(program, "convert_to_float2");
             kernel_convert_im_to_complex_uint16 = cl::Kernel(program, "convert_uint16_to_float2");
             kernel_convert_im_to_complex_uint32 = cl::Kernel(program, "convert_uint32_to_float2");
+            kernel_bicubic_interpolation = cl::Kernel(program, "bicubic_interpolation");
             kernel_uniform_tiling = cl::Kernel(program, "uniform_tiling");
             kernel_warped_tiling = cl::Kernel(program, "warped_tiling");
             kernel_FFT_1D = cl::Kernel(program, "FFT_1D");

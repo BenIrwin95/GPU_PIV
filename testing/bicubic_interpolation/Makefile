@@ -2,13 +2,13 @@
 CC=g++
 
 # compiler flags
-CFLAGS = -Wall -g -std=c++20
+CFLAGS = -Wall -g -std=c++20 -fopenmp
 
 # Directories to search for header files
-INCLUDE_DIRS = -I../../src/ #-I/usr/include/alglib
+INCLUDE_DIRS = -I../../src/
 
 # Directories to search for libraries
-LDFLAGS = -L/usr/local/lib -L/usr/local/lib64 #-L/usr/lib64/
+LDFLAGS = -L/usr/local/lib -L/usr/local/lib64
 
 # Libraries to link against
 LIBS = -ltiff -lm -lOpenCL -lfmt -lalglib

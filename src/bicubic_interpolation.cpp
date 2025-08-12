@@ -27,98 +27,103 @@ int clamp_int(int i, int min_i, int max_i){
 }
 
 
-__kernel void bicubic_interpolation(__global float* x_ref, __global float* y_ref, int2 refDims, __global float* C, __global float* output, int2 outputDims){
+__kernel void bicubic_interpolation(__global float* x_vals, __global float* y_vals,
+                                    __global float* x_ref, __global float* y_ref, int2 refDims, __global float* C,
+                                    __global float* output, int2 outputDims){
     const int gid[2] = {get_global_id(0), get_global_id(1)};
 
-    const float x = (float) gid[0];
-    const float y = (float) gid[1];
+    if(gid[0]<outputDims.x && gid[1]<outputDims.y){
+
+        const float x = x_vals[gid[0]];
+        const float y = y_vals[gid[1]];
 
 
 
-    const float min_x = x_ref[0];const float max_x = x_ref[refDims.x-1];
-    const float min_y = y_ref[0];const float max_y = y_ref[refDims.y-1];
+        const float min_x = x_ref[0];const float max_x = x_ref[refDims.x-1];
+        const float min_y = y_ref[0];const float max_y = y_ref[refDims.y-1];
 
 
 
-    // find the ref points for where we want to interpolate
-    if(x >= min_x && x<= max_x && y >= min_y && y<= max_y){
-        const int dx=x[1]-x[0]; // grid spacing
-        const int dy=y[1]-y[0];
+        // find the ref points for where we want to interpolate
+        if(x >= min_x && x<= max_x && y >= min_y && y<= max_y){
+            const int dx=x_ref[1]-x_ref[0]; // grid spacing
+            const int dy=y_ref[1]-y_ref[0];
 
-        float C_local[16];
-        float row_interps[4];
-        int j_anchor;
-        for(int j=0;j<refDims.x-1;j++){
-            if(x >= x_ref[j] && x <= x_ref[j+1]){
-                j_anchor = j;
-                break;
-            }
-        }
-
-        int i_anchor;
-        for(int i=0;i<refDims.y-1;i++){
-            if(y >= y_ref[i] && y <= y_ref[i+1]){
-                i_anchor = i;
-                break;
-            }
-        }
-
-        // fill C_local padding with constant values if value requires the 4x4 grid going off the edge of ref points
-        for(int i=0;i<4;i++){
-            int i_ = clamp_int(-1 + i_anchor + i, 0, refDims.y-1);
-            for(int j=0;j<4;j++){
-                int j_ = clamp_int(-1 + j_anchor + j, 0, refDims.x-1);
-                C_local[i*4+j] = C[i_*refDims.x + j_];
-            }
-        }
-        float s0 = (x - x_ref[j_anchor]);
-        float s1 = (y - y_ref[i_anchor]);
-        for(int i=0;i<4;i++){
-            row_interps[i] = bicubic_1D(s0, C_local[i*4], C_local[i*4+1], C_local[i*4+2], C_local[i*4+3]);
-        }
-        return bicubic_1D(s1, row_interps[0], row_interps[1], row_interps[2], row_interps[3]);
-
-    } else { // just do basic linear interpolation
-        int i_anchor, j_anchor;
-        // find closest row
-        if(y<min_y){
-            i_anchor=0;
-        } else if (y>max_y){
-            i_anchor = refDims.y-2; // we move back one from the edge so that we can always do the forward difference in the last section of the code
-        } else {
-            for(int i=0;i<refDims.y-1;i++){
-                if(y >= y_ref[i] && y<= y_ref[i+1]){
-                    i_anchor = i;
-                    break;
-                }
-            }
-        }
-        // find closest column
-        if(x < min_x){
-            j_anchor=0;
-        } else if (x > max_x){
-            j_anchor = refDims.x-2;
-        } else {
+            float C_local[16];
+            float row_interps[4];
+            int j_anchor;
             for(int j=0;j<refDims.x-1;j++){
-                if(x >= x_ref[j] && x<= x_ref[j+1]){
+                if(x >= x_ref[j] && x <= x_ref[j+1]){
                     j_anchor = j;
                     break;
                 }
             }
+
+            int i_anchor;
+            for(int i=0;i<refDims.y-1;i++){
+                if(y >= y_ref[i] && y <= y_ref[i+1]){
+                    i_anchor = i;
+                    break;
+                }
+            }
+
+            // fill C_local padding with constant values if value requires the 4x4 grid going off the edge of ref points
+            for(int i=0;i<4;i++){
+                int i_ = clamp_int(-1 + i_anchor + i, 0, refDims.y-1);
+                for(int j=0;j<4;j++){
+                    int j_ = clamp_int(-1 + j_anchor + j, 0, refDims.x-1);
+                    C_local[i*4+j] = C[i_*refDims.x + j_];
+                }
+            }
+            float s0 = (x - x_ref[j_anchor])/dx;
+            float s1 = (y - y_ref[i_anchor])/dy;
+            for(int i=0;i<4;i++){
+                row_interps[i] = bicubic_1D(s0, C_local[i*4], C_local[i*4+1], C_local[i*4+2], C_local[i*4+3]);
+            }
+            output[gid[1]*outputDims.x + gid[0]] = bicubic_1D(s1, row_interps[0], row_interps[1], row_interps[2], row_interps[3]);
+
+        } else { // just do basic linear interpolation
+            int i_anchor, j_anchor;
+            // find closest row
+            if(y<min_y){
+                i_anchor=0;
+            } else if (y>max_y){
+                i_anchor = refDims.y-2; // we move back one from the edge so that we can always do the forward difference in the last section of the code
+            } else {
+                for(int i=0;i<refDims.y-1;i++){
+                    if(y >= y_ref[i] && y<= y_ref[i+1]){
+                        i_anchor = i;
+                        break;
+                    }
+                }
+            }
+            // find closest column
+            if(x < min_x){
+                j_anchor=0;
+            } else if (x > max_x){
+                j_anchor = refDims.x-2;
+            } else {
+                for(int j=0;j<refDims.x-1;j++){
+                    if(x >= x_ref[j] && x<= x_ref[j+1]){
+                        j_anchor = j;
+                        break;
+                    }
+                }
+            }
+            int anchor = i_anchor*refDims.x+j_anchor;
+            double dCdx = (C[anchor+1] - C[anchor])/(x_ref[j_anchor+1] - x_ref[j_anchor]);
+            double dCdy = (C[anchor+refDims.x] - C[anchor])/(y_ref[i_anchor+1] - y_ref[i_anchor]);
+            //
+            float dx = x-x_ref[j_anchor];
+            float dy = y-y_ref[i_anchor];
+            output[gid[1]*outputDims.x + gid[0]] = C[anchor] + dCdx*dx + dCdy*dy;
         }
-        int anchor = i_anchor*refDims.x+j_anchor;
-        double dCdx = (C[anchor+1] - C[anchor])/(x_ref[j_anchor+1] - x_ref[j_anchor]);
-        double dCdy = (C[anchor+refDims.x] - C[anchor])/(y_ref[i_anchor+1] - y_ref[i_anchor]);
-        //
-        float dx = x-x_ref[j_anchor];
-        float dy = y-y_ref[i_anchor];
-        return C[anchor] + dCdx*dx + dCdy*dy;
     }
 }
 
 
 
-)"
+)";
 
 
 
