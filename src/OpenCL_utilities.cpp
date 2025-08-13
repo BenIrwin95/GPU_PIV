@@ -123,10 +123,10 @@ cl_int inititialise_OpenCL_buffers(OpenCL_env& env, PIVdata& piv_data, ImageData
     env.y_vals_im = cl::Buffer(env.context, CL_MEM_READ_ONLY, im.height*sizeof(float), NULL, &err); if(err != CL_SUCCESS){return err;}
     std::vector<float> im_idx_x(im.width);
     std::vector<float> im_idx_y(im.height);
-    for(int i=0;i<im_idx_x.size();i++){
+    for(unsigned int i=0;i<im.width;i++){
         im_idx_x[i] = i;
     }
-    for(int i=0;i<im_idx_y.size();i++){
+    for(unsigned int i=0;i<im.height;i++){
         im_idx_y[i] = i;
     }
     env.queue.enqueueWriteBuffer( env.x_vals_im, CL_TRUE, 0, im_idx_x.size()*sizeof(float), im_idx_x.data());

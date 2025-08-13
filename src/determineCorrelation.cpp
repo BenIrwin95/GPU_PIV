@@ -168,8 +168,8 @@ cl_int FFT_corr_tiled(cl::Buffer& input1, cl::Buffer& input2, cl_int2 inputDim, 
 
 cl_int find_max_corr(cl::Buffer& input, cl_int2 inputDim, int windowSize, cl::Buffer& outputU, cl::Buffer& outputV, cl_int2 arrSize, int activate_subpixel, OpenCL_env& env){
     cl_int err=CL_SUCCESS;
-    size_t localSize[2] = {windowSize,1};
-    size_t numGroups[2] = {arrSize.s[0], arrSize.s[1]};
+    size_t localSize[2] = {static_cast<size_t>(windowSize),1};
+    size_t numGroups[2] = {static_cast<size_t>(arrSize.s[0]), static_cast<size_t>(arrSize.s[1])};
     size_t globalSize[2] = {numGroups[0]*localSize[0],numGroups[1]*localSize[1]};
 
     try {err = env.kernel_findMaxCorr.setArg(0, input);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 0" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}

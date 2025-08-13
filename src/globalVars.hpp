@@ -32,22 +32,6 @@ struct PIVdata {
 };
 
 
-struct bicubicInterp{
-    alglib::spline2dinterpolant s;
-    double min_x;
-    double max_x;
-    double min_y;
-    double max_y;
-    int nx;
-    int ny;
-    std::vector<double>& x;
-    std::vector<double>& y;
-    std::vector<double>& C;
-    bicubicInterp(std::vector<double>& x_ref, std::vector<double>& y_ref, std::vector<double>& C_ref) : x(x_ref), y(y_ref), C(C_ref) {}
-};
-
-
-
 
 struct ImageData {
     uint32_t width;
