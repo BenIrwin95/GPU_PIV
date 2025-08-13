@@ -163,7 +163,13 @@ int main(int argc, char* argv[]) {
             if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
             debug_message("image 2", 3, DEBUG_LVL);
             if(pass>0){
-                //determine_image_shifts(pass, piv_data, env, imageShifts, im_ref.width, im_ref.height);
+                // load correct ref vals to GPU
+                env.queue.enqueueWriteBuffer( env.x_ref, CL_TRUE, 0, piv_data.x[pass-1].size()*sizeof(float), piv_data.x[pass-1].data());
+                env.queue.enqueueWriteBuffer( env.y_ref, CL_TRUE, 0, piv_data.y[pass-1].size()*sizeof(float), piv_data.y[pass-1].data());
+                env.queue.enqueueWriteBuffer( env.U_ref, CL_TRUE, 0, piv_data.U[pass-1].size()*sizeof(float), piv_data.U[pass-1].data());
+                env.queue.enqueueWriteBuffer( env.V_ref, CL_TRUE, 0, piv_data.V[pass-1].size()*sizeof(float), piv_data.V[pass-1].data());
+                err = determine_image_shifts(pass, piv_data, env, im_ref.width, im_ref.height);if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
+                err = upscale_velocity_field(pass, piv_data, env);if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
                 err = warped_tile_data(env.im2_complex, im2.dims, env.im2_windows, piv_data.window_sizes[pass], piv_data.window_shifts[pass], piv_data.arrSize[pass], env);
                 if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
             } else {
@@ -194,6 +200,8 @@ int main(int argc, char* argv[]) {
 
             // validate and fix bad vectors
             debug_message("Validating vectors", 2, DEBUG_LVL);
+            env.queue.enqueueWriteBuffer( env.X, CL_TRUE, 0, piv_data.X[pass].size()*sizeof(float), piv_data.X[pass].data());
+            env.queue.enqueueWriteBuffer( env.Y, CL_TRUE, 0, piv_data.Y[pass].size()*sizeof(float), piv_data.Y[pass].data());
             err = validateVectors(pass, piv_data, env);
             if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
 

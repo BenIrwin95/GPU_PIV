@@ -19,7 +19,7 @@ output[idx_output] = input[idx];
 }
 
 
-__kernel void warped_tiling(__global float2* input, __global int2* offsets, int2 inputDim, int N, int2 strideDim,__global float2* output, int2 outputDim){
+__kernel void warped_tiling(__global float2* input, __global float* offsets_x, __global float* offsets_y, int2 inputDim, int N, int2 strideDim,__global float2* output, int2 outputDim){
 
 int gid[2] = {get_group_id(0),get_group_id(1)};
 int lid[2] = {get_local_id(0),get_local_id(1)};
@@ -30,8 +30,8 @@ int2 idx;
 idx.x = gid[0]*strideDim.x + lid[0];
 idx.y = gid[1]*strideDim.y + lid[1];
 
-idx.x += offsets[idx_og].x;
-idx.y += offsets[idx_og].y;
+idx.x += (int)offsets_x[idx_og];
+idx.y += (int)offsets_y[idx_og];
 
 
 
@@ -92,13 +92,14 @@ cl_int warped_tile_data(cl::Buffer& input, cl_int2 inputDim, cl::Buffer& output,
     outputDim.s[1] = arrSize.s[1]*windowSize;
 
 
-    try {err = env.kernel_warped_tiling.setArg(0, input);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 0" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
-    try {err = env.kernel_warped_tiling.setArg(1, env.imageShifts);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 1" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
-    try {err = env.kernel_warped_tiling.setArg(2, sizeof(cl_int2), &inputDim);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 2" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
-    try {err = env.kernel_warped_tiling.setArg(3, sizeof(int), &windowSize);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 3" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
-    try {err = env.kernel_warped_tiling.setArg(4, sizeof(cl_int2), &strideDim);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 4" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
-    try {err = env.kernel_warped_tiling.setArg(5, output);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 5" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
-    try {err = env.kernel_warped_tiling.setArg(6, sizeof(cl_int2), &outputDim);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 6" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_warped_tiling.setArg(0, input);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_warped_tiling.setArg(1, env.imageShifts_x);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_warped_tiling.setArg(2, env.imageShifts_y);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_warped_tiling.setArg(3, sizeof(cl_int2), &inputDim);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_warped_tiling.setArg(4, sizeof(int), &windowSize);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_warped_tiling.setArg(5, sizeof(cl_int2), &strideDim);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_warped_tiling.setArg(6, output);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_warped_tiling.setArg(7, sizeof(cl_int2), &outputDim);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
 
 
     cl::NDRange local(windowSize, windowSize);

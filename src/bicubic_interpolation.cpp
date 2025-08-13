@@ -198,12 +198,8 @@ double interpolate_2D_bicubic(double x, double y, bicubicInterp& bicubic){
 }
 
 
-cl_int2 determine_image_shifts(int pass, PIVdata& piv_data, OpenCL_env& env, std::vector<cl_int2>& imageShifts, uint32_t im_width, uint32_t im_height){
-    // load correct ref vals to GPU
-    env.queue.enqueueWriteBuffer( env.x_ref, CL_TRUE, 0, piv_data.x[pass-1].size()*sizeof(float), piv_data.x[pass-1].data());
-    env.queue.enqueueWriteBuffer( env.y_ref, CL_TRUE, 0, piv_data.y[pass-1].size()*sizeof(float), piv_data.y[pass-1].data());
-    env.queue.enqueueWriteBuffer( env.U_ref, CL_TRUE, 0, piv_data.U[pass-1].size()*sizeof(float), piv_data.U[pass-1].data());
-    env.queue.enqueueWriteBuffer( env.V_ref, CL_TRUE, 0, piv_data.V[pass-1].size()*sizeof(float), piv_data.V[pass-1].data());
+cl_int determine_image_shifts(int pass, PIVdata& piv_data, OpenCL_env& env, uint32_t im_width, uint32_t im_height){
+    cl_int err=CL_SUCCESS;
 
     cl_int2 outputDims;
     outputDims.s[0] = im_width;outputDims.s[1] = im_height;
@@ -211,19 +207,65 @@ cl_int2 determine_image_shifts(int pass, PIVdata& piv_data, OpenCL_env& env, std
     int localSize[2] = {8,8};
     int numGroups[2] = {(int)ceil((float)outputDims.s[0]/localSize[0]), (int)ceil((float)outputDims.s[1]/localSize[1])};
     int globalSize[2] = {numGroups[0]*localSize[0], numGroups[1]*localSize[1]};
-    try {err = env.kernel_bicubic_interpolation.setArg(0, env.x_vals_im);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 0" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
-    try {err = env.kernel_bicubic_interpolation.setArg(1, env.y_vals_im);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 1" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
-    // try {err = env.kernel_bicubic_interpolation.setArg(2, x_ref);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 2" << std::endl;CHECK_CL_ERROR(e.err());return 1;}
-    // try {err = env.kernel_bicubic_interpolation.setArg(3, y_ref);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 3" << std::endl;CHECK_CL_ERROR(e.err());return 1;}
-    // try {err = env.kernel_bicubic_interpolation.setArg(4, sizeof(cl_int2), &refDims);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 4" << std::endl;CHECK_CL_ERROR(e.err());return 1;}
-    // try {err = env.kernel_bicubic_interpolation.setArg(5, C_ref);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 3" << std::endl;CHECK_CL_ERROR(e.err());return 1;}
-    // try {err = env.kernel_bicubic_interpolation.setArg(6, output);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 5" << std::endl;CHECK_CL_ERROR(e.err());return 1;}
-    // try {err = env.kernel_bicubic_interpolation.setArg(7, sizeof(cl_int2), &outputDims);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 6" << std::endl;CHECK_CL_ERROR(e.err());return 1;}
-    // cl::NDRange local(localSize[0], localSize[1]);
-    // cl::NDRange global(globalSize[0], globalSize[1]);
-    // std::cout << "running kernel" << std::endl;
-    // try{env.queue.enqueueNDRangeKernel(env.kernel_bicubic_interpolation, cl::NullRange, global, local);} catch (cl::Error& e) {std::cerr << "Error Enqueuing kernel_bicubic_interpolation" << std::endl;CHECK_CL_ERROR(e.err());return 1;}
-    // env.queue.finish();
+    cl::NDRange local(localSize[0], localSize[1]);
+    cl::NDRange global(globalSize[0], globalSize[1]);
+
+    // image interpolations
+    // interpolating U
+    try {err = env.kernel_bicubic_interpolation.setArg(0, env.x_vals_im);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_bicubic_interpolation.setArg(1, env.y_vals_im);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_bicubic_interpolation.setArg(2, env.x_ref);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_bicubic_interpolation.setArg(3, env.y_ref);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_bicubic_interpolation.setArg(4, sizeof(cl_int2), &piv_data.arrSize[pass-1]);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_bicubic_interpolation.setArg(5, env.U_ref);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_bicubic_interpolation.setArg(6, env.imageShifts_x);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_bicubic_interpolation.setArg(7, sizeof(cl_int2), &outputDims);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try{env.queue.enqueueNDRangeKernel(env.kernel_bicubic_interpolation, cl::NullRange, global, local);} catch (cl::Error& e) {std::cerr << "Error Enqueuing kernel_bicubic_interpolation" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    env.queue.finish();
+
+    // interpolating V
+    try {err = env.kernel_bicubic_interpolation.setArg(5, env.V_ref);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_bicubic_interpolation.setArg(6, env.imageShifts_y);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try{env.queue.enqueueNDRangeKernel(env.kernel_bicubic_interpolation, cl::NullRange, global, local);} catch (cl::Error& e) {std::cerr << "Error Enqueuing kernel_bicubic_interpolation" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    env.queue.finish();
+
+    return err;
+}
+
+
+cl_int upscale_velocity_field(int pass, PIVdata& piv_data, OpenCL_env& env){
+    cl_int err=CL_SUCCESS;
+    env.queue.enqueueWriteBuffer( env.x_vals, CL_TRUE, 0, piv_data.x[pass].size()*sizeof(float), piv_data.x[pass].data());
+    env.queue.enqueueWriteBuffer( env.y_vals, CL_TRUE, 0, piv_data.y[pass].size()*sizeof(float), piv_data.y[pass].data());
+
+    cl_int2 outputDims = piv_data.arrSize[pass];
+
+    int localSize[2] = {8,8};
+    int numGroups[2] = {(int)ceil((float)outputDims.s[0]/localSize[0]), (int)ceil((float)outputDims.s[1]/localSize[1])};
+    int globalSize[2] = {numGroups[0]*localSize[0], numGroups[1]*localSize[1]};
+    cl::NDRange local(localSize[0], localSize[1]);
+    cl::NDRange global(globalSize[0], globalSize[1]);
+
+    // interpolating U
+    try {err = env.kernel_bicubic_interpolation.setArg(0, env.x_vals);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_bicubic_interpolation.setArg(1, env.y_vals);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_bicubic_interpolation.setArg(2, env.x_ref);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_bicubic_interpolation.setArg(3, env.y_ref);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_bicubic_interpolation.setArg(4, sizeof(cl_int2), &piv_data.arrSize[pass-1]);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_bicubic_interpolation.setArg(5, env.U_ref);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_bicubic_interpolation.setArg(6, env.U);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_bicubic_interpolation.setArg(7, sizeof(cl_int2), &outputDims);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try{env.queue.enqueueNDRangeKernel(env.kernel_bicubic_interpolation, cl::NullRange, global, local);} catch (cl::Error& e) {std::cerr << "Error Enqueuing kernel_bicubic_interpolation" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    env.queue.finish();
+
+    // interpolating V
+    try {err = env.kernel_bicubic_interpolation.setArg(5, env.V_ref);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_bicubic_interpolation.setArg(6, env.V);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try{env.queue.enqueueNDRangeKernel(env.kernel_bicubic_interpolation, cl::NullRange, global, local);} catch (cl::Error& e) {std::cerr << "Error Enqueuing kernel_bicubic_interpolation" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    env.queue.finish();
+
+
+    return err;
 }
 
 

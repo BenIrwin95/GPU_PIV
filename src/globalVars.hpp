@@ -104,8 +104,8 @@ struct OpenCL_env {
     cl::Buffer im2_complex;
     cl::Buffer im1_windows;
     cl::Buffer im2_windows;
-    // cl::Buffer X;
-    // cl::Buffer Y;
+    cl::Buffer X;
+    cl::Buffer Y;
     cl::Buffer U;
     cl::Buffer V;
     cl::Buffer flags;
@@ -118,7 +118,8 @@ struct OpenCL_env {
     cl::Buffer y_ref;
     cl::Buffer U_ref;
     cl::Buffer V_ref;
-    cl::Buffer imageShifts;
+    cl::Buffer imageShifts_x;
+    cl::Buffer imageShifts_y;
 
 
     // constructor (this will automatically setup the OpenCL environment for this project)
