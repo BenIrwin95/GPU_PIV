@@ -75,6 +75,7 @@ struct OpenCL_env {
     cl::Kernel kernel_bicubic_interpolation;
     cl::Kernel kernel_uniform_tiling;
     cl::Kernel kernel_warped_tiling;
+    cl::Kernel kernel_detrend_window;
     cl::Kernel kernel_FFT_1D;
     cl::Kernel kernel_complex_multiply_conjugate_norm;
     cl::Kernel kernel_findMaxCorr;
@@ -190,6 +191,7 @@ struct OpenCL_env {
             kernel_bicubic_interpolation = cl::Kernel(program, "bicubic_interpolation");
             kernel_uniform_tiling = cl::Kernel(program, "uniform_tiling");
             kernel_warped_tiling = cl::Kernel(program, "warped_tiling");
+            kernel_detrend_window = cl::Kernel(program, "detrend_window");
             kernel_FFT_1D = cl::Kernel(program, "FFT_1D");
             kernel_complex_multiply_conjugate_norm = cl::Kernel(program, "complex_multiply_conjugate_norm");
             kernel_findMaxCorr = cl::Kernel(program, "findMaxCorr");

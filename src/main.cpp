@@ -179,6 +179,13 @@ int main(int argc, char* argv[]) {
                 if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
             }
 
+            debug_message("Detrend windows", 2, DEBUG_LVL);
+            cl_int2 im_windows_dim;
+            im_windows_dim.s[0] = piv_data.arrSize[pass].s[0]*piv_data.window_sizes[pass];
+            im_windows_dim.s[1] = piv_data.arrSize[pass].s[1]*piv_data.window_sizes[pass];
+            err = detrend_windows(env.im1_windows, im_windows_dim, piv_data.window_sizes[pass], piv_data.arrSize[pass], env);if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
+            err = detrend_windows(env.im2_windows, im_windows_dim, piv_data.window_sizes[pass], piv_data.arrSize[pass], env);if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
+
 
 
 
@@ -188,9 +195,6 @@ int main(int argc, char* argv[]) {
             //-------------------------------------------------------------------
             //-------------------------------------------------------------------
             debug_message("Computing correlation", 2, DEBUG_LVL);
-            cl_int2 im_windows_dim;
-            im_windows_dim.s[0] = piv_data.arrSize[pass].s[0]*piv_data.window_sizes[pass];
-            im_windows_dim.s[1] = piv_data.arrSize[pass].s[1]*piv_data.window_sizes[pass];
             err = FFT_corr_tiled(env.im1_windows, env.im2_windows, im_windows_dim, piv_data.window_sizes[pass], env);
             if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
             int activate_subpixel=0;

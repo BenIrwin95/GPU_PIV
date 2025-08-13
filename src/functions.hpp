@@ -34,6 +34,8 @@ cl_int uploadImage_and_convert_to_complex(ImageData& im, OpenCL_env& env, cl::Bu
 
 cl_int uniformly_tile_data(cl::Buffer& input, cl_int2 inputDim, cl::Buffer& output, int windowSize, int window_shift, cl_int2 arrSize, OpenCL_env& env);
 cl_int warped_tile_data(cl::Buffer& input, cl_int2 inputDim, cl::Buffer& output, int windowSize, int window_shift, cl_int2 arrSize, OpenCL_env& env);
+
+cl_int detrend_windows(cl::Buffer& input, cl_int2 inputDim, int windowSize, cl_int2 arrSize, OpenCL_env& env);
 //--------------------------------------------------------------------------------
 //--------------------------bicubic_interpolation---------------------------------
 //--------------------------------------------------------------------------------

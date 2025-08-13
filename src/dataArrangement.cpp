@@ -44,6 +44,37 @@ if(idx.x < 0 || idx.x >= inputDim.x || idx.y < 0 || idx.y >= inputDim.y){
 
 }
 
+
+
+__kernel void detrend_window(__global float2* input, int2 inputDim, int N, __local float* rowSum){
+
+    int gid[2] = {get_group_id(0),get_group_id(1)};
+    int lid[2] = {get_local_id(0), get_local_id(1)}; //should be N x N
+
+
+    int idx_corner = (gid[1]*N)*inputDim.x + (gid[0]*N);
+
+    // summation of all pixels
+    float fullSum=0.0f;
+    if(lid[0]==0){
+        // sum each row of window
+        rowSum[lid[1]]=0.0f;
+        for(int i=0;i<N;i++){
+            rowSum[lid[1]] += input[idx_corner + lid[1]*inputDim.x + i].x; // pre-FFT we know the image will only exist in the x component
+        }
+        // now sum the row sums
+        if(lid[1]==0){
+            for(int i=0;i<N;i++){
+                fullSum+=rowSum[i];
+            }
+        }
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+    int idx_output = (gid[1]*N + lid[1])*inputDim.x + (gid[0]*N + lid[0]);
+    input[idx_output].x -= fullSum/(N*N);
+
+}
+
 )KERN_END";
 
 
@@ -115,3 +146,25 @@ cl_int warped_tile_data(cl::Buffer& input, cl_int2 inputDim, cl::Buffer& output,
     return err;
 }
 
+//__kernel void detrend_window(__global float2* input, int2 inputDim, int N, __local float* rowSum)
+cl_int detrend_windows(cl::Buffer& input, cl_int2 inputDim, int windowSize, cl_int2 arrSize, OpenCL_env& env){
+    cl_int err = CL_SUCCESS;
+
+    cl::NDRange local(windowSize, windowSize);
+    cl::NDRange global(arrSize.s[0]*windowSize, arrSize.s[1]*windowSize);
+
+    try {err = env.kernel_detrend_window.setArg(0, input);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_detrend_window.setArg(1, sizeof(cl_int2), &inputDim);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_detrend_window.setArg(2, sizeof(int), &windowSize);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_detrend_window.setArg(3, windowSize*sizeof(float), NULL);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try{
+        env.queue.enqueueNDRangeKernel(env.kernel_detrend_window, cl::NullRange, global, local);
+    } catch (cl::Error& e) {
+        std::cerr << "Error Enqueuing kernel_detrend_window" << std::endl;
+        CHECK_CL_ERROR(e.err());
+        return e.err();
+    }
+    env.queue.finish();
+
+    return err;
+}
