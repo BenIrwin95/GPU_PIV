@@ -17,4 +17,8 @@ WINDOW_SIZE 32 16
 WINDOW_OVERLAP 0.5 0.5
 
 
-OUTPUT_TEMPLATE ./example_resources/vec_{:03}.dat
+//OUTPUT_TEMPLATE ./example_resources/vec_{:03}.dat
+//SAVE_FORMAT ASCII
+
+OUTPUT_TEMPLATE ./example_resources/output.h5
+SAVE_FORMAT HDF5

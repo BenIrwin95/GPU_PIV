@@ -52,6 +52,7 @@ int main(int argc, char* argv[]) {
     int im2_frame_start;
     int im2_frame_step;
     std::string output_template;
+    std::string save_format;
     try{
         DEBUG_LVL = findIntegerAfterKeyword(inputFile, "DEBUG");
         N_frames = findIntegerAfterKeyword(inputFile, "N_FRAMES");piv_data.N_frames=N_frames;
@@ -65,6 +66,7 @@ int main(int argc, char* argv[]) {
         piv_data.window_sizes = findIntegersAfterKeyword(inputFile, "WINDOW_SIZE");
         piv_data.window_overlaps = findFloatsAfterKeyword(inputFile, "WINDOW_OVERLAP");
         output_template = findRestOfLineAfterKeyword(inputFile,"OUTPUT_TEMPLATE");
+        save_format = findRestOfLineAfterKeyword(inputFile,"SAVE_FORMAT");
     } catch (const std::runtime_error& e) {
         std::cerr << e.what() << std::endl;
         return 1;
@@ -138,9 +140,10 @@ int main(int argc, char* argv[]) {
     err = inititialise_OpenCL_buffers(env, piv_data, im_ref);
     if(err != CL_SUCCESS){CHECK_CL_ERROR(err);return 1;}
 
-
-
-    H5::H5File output_hdf5 = initialise_output_hdf5("test.h5", piv_data);
+    H5::H5File output_hdf5;
+    if(save_format == "HDF5"){
+        output_hdf5 = initialise_output_hdf5(output_template, piv_data);
+    }
 
     //-------------------------------------------------------------------
     //-------------------------------------------------------------------
@@ -167,10 +170,13 @@ int main(int argc, char* argv[]) {
         //---------------------iterate through passes------------------------
         //-------------------------------------------------------------------
         //-------------------------------------------------------------------
-        std::ofstream outputFile(fmt::format(fmt::runtime(output_template),frame));
-        if (!outputFile.is_open()) {
-            std::cerr << "Error opening file!" << std::endl;
-            return 1;
+        std::ofstream outputFile;
+        if(save_format == "ASCII"){
+            outputFile.open(fmt::format(fmt::runtime(output_template),frame));
+            if (!outputFile.is_open()) {
+                std::cerr << "Error opening file!" << std::endl;
+                return 1;
+            }
         }
         for(int pass=0;pass<piv_data.N_pass;pass++){
             debug_message_with_timestamp(fmt::format("Pass {}",pass), 1, DEBUG_LVL, frameStart);
@@ -240,8 +246,11 @@ int main(int argc, char* argv[]) {
             env.queue.enqueueReadBuffer(env.Y, CL_TRUE, 0, gridSizeBytes, piv_data.Y[pass].data());
             env.queue.enqueueReadBuffer(env.U, CL_TRUE, 0, gridSizeBytes, piv_data.U[pass].data());
             env.queue.enqueueReadBuffer(env.V, CL_TRUE, 0, gridSizeBytes, piv_data.V[pass].data());
-            add_pass_data_to_file(pass, outputFile, piv_data);
-            add_data_to_hdf5_output(frame, pass, output_hdf5, piv_data);
+            if(save_format == "ASCII"){
+                add_pass_data_to_file(pass, outputFile, piv_data);
+            } else if(save_format == "HDF5"){
+                add_data_to_hdf5_output(frame, pass, output_hdf5, piv_data);
+            }
             debug_message_with_timestamp(fmt::format("Pass {} finished", pass), 2, DEBUG_LVL, frameStart);
 
         }
