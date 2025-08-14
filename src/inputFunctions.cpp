@@ -94,3 +94,35 @@ std::vector<int> findIntegersAfterKeyword(const std::string& filename, const std
     file.close();
     throw std::runtime_error("Error: Keyword '" + keyword + "' not found in file '" + filename + "'");
 }
+
+
+std::vector<float> findFloatsAfterKeyword(const std::string& filename, const std::string& keyword) {
+    std::ifstream file(filename);
+
+    if (!file.is_open()) {
+        throw std::runtime_error("Error: Could not open file '" + filename + "'");
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        // Check if the line starts with the keyword, followed by a space
+        if (line.rfind(keyword, 0) == 0 && line.length() > keyword.length() && line[keyword.length()] == ' ') {
+            // Keyword found. Extract the rest of the line after the keyword and the space.
+            std::string rest_of_line = line.substr(keyword.length() + 1);
+
+            std::stringstream ss(rest_of_line);
+            std::vector<float> output;
+            float value;
+
+            while (ss >> value) {
+                output.push_back(value);
+            }
+
+            file.close();
+            return output;
+        }
+    }
+
+    file.close();
+    throw std::runtime_error("Error: Keyword '" + keyword + "' not found in file '" + filename + "'");
+}

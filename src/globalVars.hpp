@@ -21,6 +21,7 @@ struct PIVdata {
     int N_pass;
     std::vector<int> window_sizes;
     std::vector<int> window_shifts;
+    std::vector<float> window_overlaps;
     std::vector<std::vector<float>> X;
     std::vector<std::vector<float>> Y;
     std::vector<std::vector<float>> U;

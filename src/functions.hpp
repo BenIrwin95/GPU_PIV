@@ -11,6 +11,7 @@
 int findIntegerAfterKeyword(const std::string& filename, const std::string& keyword);
 std::string findRestOfLineAfterKeyword(const std::string& filename, const std::string& keyword);
 std::vector<int> findIntegersAfterKeyword(const std::string& filename, const std::string& keyword);
+std::vector<float> findFloatsAfterKeyword(const std::string& filename, const std::string& keyword);
 
 //--------------------------------------------------------------------------------
 //-------------------------------OpenCL_utilities---------------------------------

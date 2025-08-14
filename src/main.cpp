@@ -48,9 +48,15 @@ int main(int argc, char* argv[]) {
         im2_frame_step = findIntegerAfterKeyword(inputFile, "IM2_FRAME_STEP");
         piv_data.N_pass = findIntegerAfterKeyword(inputFile, "N_PASS");
         piv_data.window_sizes = findIntegersAfterKeyword(inputFile, "WINDOW_SIZE");
+        piv_data.window_overlaps = findFloatsAfterKeyword(inputFile, "WINDOW_OVERLAP");
         output_template = findRestOfLineAfterKeyword(inputFile,"OUTPUT_TEMPLATE");
     } catch (const std::runtime_error& e) {
         std::cerr << e.what() << std::endl;
+        return 1;
+    }
+
+    if( !(piv_data.N_pass == piv_data.window_sizes.size() && piv_data.N_pass == piv_data.window_overlaps.size())){
+        std::cout << "Mismatch between N_pass and length of window size/overlaps list" << std::endl;
         return 1;
     }
 
@@ -88,7 +94,7 @@ int main(int argc, char* argv[]) {
     piv_data.V.resize(piv_data.N_pass);
     for(int k=0;k<piv_data.N_pass;k++){
         int windowSize = piv_data.window_sizes[k];
-        double overlap = 0.5;
+        float overlap = piv_data.window_overlaps[k];
         int window_shift = (1.0-overlap)*windowSize;
         piv_data.window_shifts[k] = window_shift;
         piv_data.arrSize[k].s[0] = floor((im_ref.width-windowSize)/window_shift);
