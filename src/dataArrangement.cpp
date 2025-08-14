@@ -71,7 +71,11 @@ __kernel void detrend_window(__global float2* input, int2 inputDim, int N, __loc
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     int idx_output = (gid[1]*N + lid[1])*inputDim.x + (gid[0]*N + lid[0]);
-    input[idx_output].x -= fullSum/(N*N);
+    float output = input[idx_output].x - fullSum/(N*N);
+    if(output < 0){
+        output = 0;
+    }
+    input[idx_output].x = output;
 
 }
 
