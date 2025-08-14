@@ -8,8 +8,7 @@ An example file can be found at `./example_resources/PIVsetup.in`. This file can
 ```
 ./build/bin/GPU_PIV ./example_resources/PIVsetup.in
 ```
-The output of this can be found at: `./example_resources/vec_000.dat`
-Note that on Windows you will need to replace `/` with `\`
+The output of this can be found at: `./example_resources/vec_000.dat`. Note that on Windows you will need to replace `/` with `\`
 
 ## Building the project
 The program uses the following libraries that will need to be installed to build successfully
@@ -17,6 +16,7 @@ The program uses the following libraries that will need to be installed to build
 * TIFF
 * OpenMP
 * fmt
+* HDF5
 
 To then build the project,if on Linux, you can run the INSTALL.sh bash script
 
@@ -38,6 +38,19 @@ To then build GPU_PIV, change to the project's root folder, make sure the build 
 ```
 cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="C:/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake"
 cd build 
+cmake --build . --config Release
+```
+
+### Building on Mac (untested)
+Installing the dependencies can be done through homebrew:
+```
+brew install tiff fmt hdf5 opencl-clhpp-headers
+```
+
+To then build GPU_PIV, change to the project's root folder, make sure the build folder has been removed, and then run:
+```
+cmake -B build -S .
+cd build
 cmake --build . --config Release
 ```
 
