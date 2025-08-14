@@ -16,5 +16,6 @@
 #include <CL/opencl.hpp>
 #include <tiffio.h>
 #include <omp.h>
+#include <H5Cpp.h>
 
 #endif

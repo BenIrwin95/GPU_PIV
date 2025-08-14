@@ -5,13 +5,13 @@ CC=g++
 CFLAGS = -Wall -g -std=c++20 -fopenmp
 
 # Directories to search for header files
-INCLUDE_DIRS = -I../../src/
+INCLUDE_DIRS = -I../../src/ -I/usr/include/
 
 # Directories to search for libraries
-LDFLAGS = -L/usr/local/lib -L/usr/local/lib64
+LDFLAGS = -L/usr/local/lib -L/usr/local/lib64 -L/usr/lib64
 
 # Libraries to link against
-LIBS = -ltiff -lm -lOpenCL -lfmt -lalglib
+LIBS = -ltiff -lm -lOpenCL -lfmt
 
 # C++ source files
 SRCS = ./main.cpp ../../src/OpenCL_utilities.cpp ../../src/inputFunctions.cpp ../../src/tiffFunctions.cpp ../../src/dataArrangement.cpp ../../src/bicubic_interpolation.cpp ../../src/FFT.cpp ../../src/complexMaths.cpp ../../src/determineCorrelation.cpp ../../src/vectorValidation.cpp ../../src/outputFunctions.cpp

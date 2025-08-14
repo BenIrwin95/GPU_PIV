@@ -19,6 +19,7 @@ extern const std::string kernelSource_bicubic_interpolation;
 
 struct PIVdata {
     int N_pass;
+    int N_frames;
     std::vector<int> window_sizes;
     std::vector<int> window_shifts;
     std::vector<float> window_overlaps;

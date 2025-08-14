@@ -67,6 +67,22 @@ if (NOT WIN32)
     target_link_libraries(GPU_PIV PRIVATE m)
 endif()
 
+
+# --- Find and link HDF5 library ---
+# The COMPONENTS keyword tells CMake to look for both the C and C++ bindings.
+find_package(HDF5 REQUIRED COMPONENTS CXX)
+if (HDF5_FOUND)
+    # Link the executable against the HDF5 libraries.
+    # The HDF5_LIBRARIES variable includes both hdf5_cpp and hdf5.
+    target_link_libraries(GPU_PIV PRIVATE ${HDF5_LIBRARIES})
+    # Add the include directories. The HDF5_INCLUDE_DIRS variable contains the paths for both C and C++ headers.
+    target_include_directories(GPU_PIV PRIVATE ${HDF5_INCLUDE_DIRS})
+    message(STATUS "Found HDF5: ${HDF5_LIBRARIES}")
+else()
+    message(FATAL_ERROR "HDF5 library not found. Please install hdf5-devel.")
+endif()
+
+
 # --- Handle OpenMP ---
 find_package(OpenMP)
 if (OPENMP_FOUND)

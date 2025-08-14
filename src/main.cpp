@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
     std::string output_template;
     try{
         DEBUG_LVL = findIntegerAfterKeyword(inputFile, "DEBUG");
-        N_frames = findIntegerAfterKeyword(inputFile, "N_FRAMES");
+        N_frames = findIntegerAfterKeyword(inputFile, "N_FRAMES");piv_data.N_frames=N_frames;
         im1_filepath_template = findRestOfLineAfterKeyword(inputFile,"IMAGEFILE_1");
         im1_frame_start = findIntegerAfterKeyword(inputFile, "IM1_FRAME_START");
         im1_frame_step = findIntegerAfterKeyword(inputFile, "IM1_FRAME_STEP");
@@ -139,6 +139,8 @@ int main(int argc, char* argv[]) {
     if(err != CL_SUCCESS){CHECK_CL_ERROR(err);return 1;}
 
 
+
+    H5::H5File output_hdf5 = initialise_output_hdf5("test.h5", piv_data);
 
     //-------------------------------------------------------------------
     //-------------------------------------------------------------------

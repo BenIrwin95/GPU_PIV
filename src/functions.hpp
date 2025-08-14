@@ -69,5 +69,6 @@ cl_int validateVectors(int pass, PIVdata& piv_data, OpenCL_env& env);
 //-------------------------------outputFunctions----------------------------------
 //--------------------------------------------------------------------------------
 void add_pass_data_to_file(int pass, std::ofstream& outputFile, PIVdata& piv_data, OpenCL_env& env);
+H5::H5File initialise_output_hdf5(const std::string filename, PIVdata& piv_data);
 
 #endif
