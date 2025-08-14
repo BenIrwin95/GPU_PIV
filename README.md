@@ -33,6 +33,7 @@ To install the libraries, then run:
 vcpkg install tiff
 vcpkg install opencl
 vcpkg install fmt
+vcpkg install hdf5:x64-windows
 ```
 To then build GPU_PIV, change to the project's root folder, make sure the build folder has been removed, and then run:
 ```
