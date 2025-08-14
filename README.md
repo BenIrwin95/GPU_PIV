@@ -9,6 +9,7 @@ An example file can be found at `./example_resources/PIVsetup.in`. This file can
 ./build/bin/GPU_PIV ./example_resources/PIVsetup.in
 ```
 The output of this can be found at: `./example_resources/vec_000.dat`
+Note that on Windows you will need to replace `/` with `\`
 
 ## Building the project
 The program uses the following libraries that will need to be installed to build successfully
@@ -16,5 +17,27 @@ The program uses the following libraries that will need to be installed to build
 * TIFF
 * OpenMP
 * fmt
-To then build the project, run the INSTALL.sh bash script
+
+To then build the project,if on Linux, you can run the INSTALL.sh bash script
+
+### Building on Windows
+For installing the necessary libraries on windows I would recommend using vcpkg.
+Installing vcpkg can be done with:
+```
+git clone https://github.com/microsoft/vcpkg.git
+cd vcpkg
+.\bootstrap-vcpkg.bat
+```
+To install the libraries, then run:
+```
+vcpkg install tiff
+vcpkg install opencl
+vcpkg install fmt
+```
+To then build GPU_PIV, change to the project's root folder, make sure the build folder has been removed, and then run:
+```
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="C:/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake"
+cd build 
+cmake --build . --config Release
+```
 
