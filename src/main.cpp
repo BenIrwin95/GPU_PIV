@@ -13,6 +13,19 @@ void debug_message(std::string message, int min_level, int debug){
     }
 }
 
+void debug_message_with_timestamp(std::string message, int min_level, int debug, std::chrono::time_point<std::chrono::high_resolution_clock, std::chrono::high_resolution_clock::duration> refTime){
+    if(debug >= min_level){
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> duration = currentTime - refTime;
+        std::cout << std::fixed << std::left<< std::setw(8) << std::setprecision(2) << duration.count() << "ms ";
+        std::cout << "-";
+        for (int i = 0; i < min_level; ++i) {
+            std::cout << "-";
+        }
+        std::cout << message << std::endl;
+    }
+}
+
 
 
 
@@ -21,6 +34,8 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
         return 1;
     }
+
+    std::chrono::time_point<std::chrono::system_clock> programStartTime = std::chrono::system_clock::now();
 
     //char *inputFile = argv[1];
     const std::string inputFile = argv[1];
@@ -132,7 +147,9 @@ int main(int argc, char* argv[]) {
     //-------------------------------------------------------------------
 
     for(int frame=0;frame<N_frames;frame++){
-        debug_message(fmt::format("Frame {}",frame), 0, DEBUG_LVL);
+        auto frameStart = std::chrono::high_resolution_clock::now();
+        //debug_message(fmt::format("Frame {}",frame), 0, DEBUG_LVL);
+        debug_message_with_timestamp(fmt::format("Frame {}",frame), 0, DEBUG_LVL, frameStart);
         // load images, upload to GPU and convert to complex format ready for FFT later on
         ImageData im1 = readTiffToAppropriateIntegerVector(fmt::format(fmt::runtime(im1_filepath_template), im1_frame_start + frame*im1_frame_step));
         ImageData im2 = readTiffToAppropriateIntegerVector(fmt::format(fmt::runtime(im2_filepath_template), im2_frame_start + frame*im2_frame_step));
@@ -154,7 +171,7 @@ int main(int argc, char* argv[]) {
             return 1;
         }
         for(int pass=0;pass<piv_data.N_pass;pass++){
-            debug_message(fmt::format("Pass {}",pass), 1, DEBUG_LVL);
+            debug_message_with_timestamp(fmt::format("Pass {}",pass), 1, DEBUG_LVL, frameStart);
 
 
 
@@ -163,7 +180,7 @@ int main(int argc, char* argv[]) {
             //-------------------divide images into windows----------------------
             //-------------------------------------------------------------------
             //-------------------------------------------------------------------
-            debug_message("Dividing image into tiles", 2, DEBUG_LVL);
+            debug_message_with_timestamp("Dividing image into tiles", 2, DEBUG_LVL, frameStart);
             debug_message("image 1", 3, DEBUG_LVL);
             err = uniformly_tile_data(env.im1_complex, im1.dims, env.im1_windows, piv_data.window_sizes[pass], piv_data.window_shifts[pass], piv_data.arrSize[pass], env);
             if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
@@ -185,7 +202,7 @@ int main(int argc, char* argv[]) {
                 if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
             }
 
-            debug_message("Detrend windows", 2, DEBUG_LVL);
+            debug_message_with_timestamp("Detrend windows", 2, DEBUG_LVL, frameStart);
             cl_int2 im_windows_dim;
             im_windows_dim.s[0] = piv_data.arrSize[pass].s[0]*piv_data.window_sizes[pass];
             im_windows_dim.s[1] = piv_data.arrSize[pass].s[1]*piv_data.window_sizes[pass];
@@ -200,7 +217,7 @@ int main(int argc, char* argv[]) {
             //----------------compute correlation and find peaks-----------------
             //-------------------------------------------------------------------
             //-------------------------------------------------------------------
-            debug_message("Computing correlation", 2, DEBUG_LVL);
+            debug_message_with_timestamp("Computing correlation", 2, DEBUG_LVL,frameStart);
             err = FFT_corr_tiled(env.im1_windows, env.im2_windows, im_windows_dim, piv_data.window_sizes[pass], env);
             if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
             int activate_subpixel=0;
@@ -209,23 +226,30 @@ int main(int argc, char* argv[]) {
             if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
 
             // validate and fix bad vectors
-            debug_message("Validating vectors", 2, DEBUG_LVL);
+            debug_message_with_timestamp("Validating vectors", 2, DEBUG_LVL, frameStart);
             env.queue.enqueueWriteBuffer( env.X, CL_TRUE, 0, piv_data.X[pass].size()*sizeof(float), piv_data.X[pass].data());
             env.queue.enqueueWriteBuffer( env.Y, CL_TRUE, 0, piv_data.Y[pass].size()*sizeof(float), piv_data.Y[pass].data());
             err = validateVectors(pass, piv_data, env);
             if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
 
-            debug_message("Saving data", 2, DEBUG_LVL);
+            debug_message_with_timestamp("Saving data", 2, DEBUG_LVL, frameStart);
             add_pass_data_to_file(pass, outputFile, piv_data, env);
+            debug_message_with_timestamp(fmt::format("Pass {} finished", pass), 2, DEBUG_LVL, frameStart);
 
         }
 
+        auto frameEnd = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> duration = frameEnd - frameStart;
 
+        std::cout << "Time taken to process frame-pair: " << duration.count() << " milliseconds" << std::endl;
 
 
 
     }
     debug_message("Program finished", 0, DEBUG_LVL);
+    std::chrono::time_point<std::chrono::system_clock> programEndTime = std::chrono::system_clock::now();
+    std::chrono::duration<double> duration = programEndTime - programStartTime;
+    std::cout << "Total program runtime: " << duration.count() << " seconds" << std::endl;
     return 0;
 }
 
