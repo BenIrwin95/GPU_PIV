@@ -235,7 +235,13 @@ int main(int argc, char* argv[]) {
             if(err != CL_SUCCESS){CHECK_CL_ERROR(err);break;}
 
             debug_message_with_timestamp("Saving data", 2, DEBUG_LVL, frameStart);
-            add_pass_data_to_file(pass, outputFile, piv_data, env);
+            const size_t gridSizeBytes = piv_data.arrSize[pass].s[0]*piv_data.arrSize[pass].s[1]*sizeof(float);
+            env.queue.enqueueReadBuffer(env.X, CL_TRUE, 0, gridSizeBytes, piv_data.X[pass].data());
+            env.queue.enqueueReadBuffer(env.Y, CL_TRUE, 0, gridSizeBytes, piv_data.Y[pass].data());
+            env.queue.enqueueReadBuffer(env.U, CL_TRUE, 0, gridSizeBytes, piv_data.U[pass].data());
+            env.queue.enqueueReadBuffer(env.V, CL_TRUE, 0, gridSizeBytes, piv_data.V[pass].data());
+            add_pass_data_to_file(pass, outputFile, piv_data);
+            add_data_to_hdf5_output(frame, pass, output_hdf5, piv_data);
             debug_message_with_timestamp(fmt::format("Pass {} finished", pass), 2, DEBUG_LVL, frameStart);
 
         }

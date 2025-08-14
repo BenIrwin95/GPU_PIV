@@ -2,13 +2,13 @@
 
 
 
-void add_pass_data_to_file(int pass, std::ofstream& outputFile, PIVdata& piv_data, OpenCL_env& env){
+void add_pass_data_to_file(int pass, std::ofstream& outputFile, PIVdata& piv_data){
     // first pull the necessary data out of the GPU
-    const size_t gridSizeBytes = piv_data.arrSize[pass].s[0]*piv_data.arrSize[pass].s[1]*sizeof(float);
-    env.queue.enqueueReadBuffer(env.X, CL_TRUE, 0, gridSizeBytes, piv_data.X[pass].data());
-    env.queue.enqueueReadBuffer(env.Y, CL_TRUE, 0, gridSizeBytes, piv_data.Y[pass].data());
-    env.queue.enqueueReadBuffer(env.U, CL_TRUE, 0, gridSizeBytes, piv_data.U[pass].data());
-    env.queue.enqueueReadBuffer(env.V, CL_TRUE, 0, gridSizeBytes, piv_data.V[pass].data());
+    // const size_t gridSizeBytes = piv_data.arrSize[pass].s[0]*piv_data.arrSize[pass].s[1]*sizeof(float);
+    // env.queue.enqueueReadBuffer(env.X, CL_TRUE, 0, gridSizeBytes, piv_data.X[pass].data());
+    // env.queue.enqueueReadBuffer(env.Y, CL_TRUE, 0, gridSizeBytes, piv_data.Y[pass].data());
+    // env.queue.enqueueReadBuffer(env.U, CL_TRUE, 0, gridSizeBytes, piv_data.U[pass].data());
+    // env.queue.enqueueReadBuffer(env.V, CL_TRUE, 0, gridSizeBytes, piv_data.V[pass].data());
 
 
     outputFile << "Pass " << pass + 1 << " of " << piv_data.N_pass << "\n";
@@ -76,6 +76,16 @@ H5::H5File initialise_output_hdf5(const std::string filename, PIVdata& piv_data)
     }
 
     return file;
+}
+
+
+void add_data_to_hdf5_output(int frame, int pass, H5::H5File& file, PIVdata& piv_data){
+    H5::DataSet dataset_U = file.openDataSet(fmt::format("/Pass_{}/U/frame{:03}", pass, frame));
+    H5::DataSet dataset_V = file.openDataSet(fmt::format("/Pass_{}/V/frame{:03}", pass, frame));
+
+    // Write the new data to the dataset
+    dataset_U.write(piv_data.U[pass].data(), H5::PredType::NATIVE_FLOAT);
+    dataset_V.write(piv_data.V[pass].data(), H5::PredType::NATIVE_FLOAT);
 }
 
 /*
