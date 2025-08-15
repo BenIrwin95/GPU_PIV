@@ -98,6 +98,7 @@ for(int frame=0;frame<N_frames;frame++){
 
 In the example input file `{:03}` will format the frame index into a 3 digit integer, replacing empty digits with zeros.
 
+Note that any relative filepaths (ie. using `./`) must be given relative to where GPU_PIV is run from NOT where PIVsetup.in is stored
 
 ### PIV settings
 ```
