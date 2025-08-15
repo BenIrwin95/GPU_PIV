@@ -58,4 +58,3 @@ cmake --build . --config Release
 
 ## Work in Progress and known bugs
 * Image pre-processing
-* Window tiling function crashes for windowSize > 32. Possible due to too many local processes
