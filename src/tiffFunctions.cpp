@@ -77,6 +77,8 @@ __kernel void convert_uint32_to_float2(__global const uint* input_data, __global
  * @return An ImageData struct containing the image dimensions and pixel data.
  * @throws std::runtime_error if the file cannot be opened, is not single-channel,
  * is not an unsigned integer format, or if reading fails.
+ 
+ Note: the first element of the output corresponds to the bottom left of the image
  */
 ImageData readTiffToAppropriateIntegerVector(const std::string& filePath) {
     // Open the TIFF file for reading
