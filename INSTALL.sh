@@ -8,13 +8,11 @@ if [ -d "build" ]; then
 fi
 
 # Create a new, clean build directory
-mkdir build
+echo "Configuring the project with CMake"
+cmake -B build -S .
 cd build
 
-echo "Configuring the project with CMake..."
-cmake ..
-
-echo "Building the project..."
+echo "Building the project"
 cmake --build . --config Release
-
+cd ..
 echo "Build process complete."
