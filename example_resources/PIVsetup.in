@@ -2,13 +2,15 @@ DEBUG 2
 
 N_FRAMES 1
 
-IMAGEFILE_1 ./example_resources/im{}.tiff
-//IMAGEFILE_1 ./example_resources/piv_test_image_frame{}.tif
+//IMAGEFILE_1 ./example_resources/im{}.tiff
+IMAGEFILE_1 ./example_resources/piv_test_image_frame{}.tif
+//IMAGEFILE_1 ./example_resources/RecordedImage_GO-5100M-USB__{:03}.tif
 IM1_FRAME_START 1
 IM1_FRAME_STEP 0
 
-IMAGEFILE_2 ./example_resources/im{}.tiff
-//IMAGEFILE_2 ./example_resources/piv_test_image_frame{}.tif
+//IMAGEFILE_2 ./example_resources/im{}.tiff
+IMAGEFILE_2 ./example_resources/piv_test_image_frame{}.tif
+//IMAGEFILE_2 ./example_resources/RecordedImage_GO-5100M-USB__{:03}.tif
 IM2_FRAME_START 2
 IM2_FRAME_STEP 0
 
