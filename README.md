@@ -134,4 +134,3 @@ The HDF5 method is notably faster than the ASCII method, but the ASCII format ha
 
 ## Work in Progress and known bugs
 * Image pre-processing
-* Something doesn't seem to work quite right for uint16 tiff images
