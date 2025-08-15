@@ -266,3 +266,138 @@ cl_int uploadImage_and_convert_to_complex(ImageData& im, OpenCL_env& env, cl::Bu
 }
 
 
+
+
+/**
+ * @brief Writes image data from an ImageData struct to a single-channel TIFF file.
+ *
+ * This function creates a new TIFF file at the specified path and writes the
+ * pixel data contained within the ImageData struct. It supports 8-bit, 16-bit,
+ * and 32-bit unsigned integer grayscale images. The function mirrors the
+ * orientation logic of the provided read function, writing scanlines from
+ * the bottom-up based on the read function's top-down orientation.
+ *
+ * @param imageData A constant reference to an ImageData struct containing the
+ * image dimensions, data type, and pixel data.
+ * @param filePath The path to the output TIFF file.
+ * @throws std::runtime_error if the file cannot be created, if an unsupported
+ * ImageData type is provided, or if any error occurs during writing.
+ */
+void writeTiffFromAppropriateIntegerVector(const ImageData& imageData, const std::string& filePath) {
+    // Open the TIFF file for writing. "w" mode creates a new file or overwrites an existing one.
+    TIFF* tif = TIFFOpen(filePath.c_str(), "w");
+    if (!tif) {
+        throw std::runtime_error("Error: Could not create TIFF file: " + filePath);
+    }
+
+    // --- Set essential TIFF tags ---
+    // Image dimensions
+    TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, imageData.width);
+    TIFFSetField(tif, TIFFTAG_IMAGELENGTH, imageData.height);
+
+    // Number of samples per pixel.
+    // Based on your read function, this utility assumes single-channel images.
+    TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, 1);
+
+    // Planar configuration: how pixel data is stored.
+    // PLANARCONFIG_CONTIG means samples for a pixel are stored contiguously (e.g., RGBRGB).
+    // For single-channel, this is the standard.
+    TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+
+    // Photometric interpretation: how pixel values relate to color.
+    // PHOTOMETRIC_MINISBLACK means 0 is black, increasing values are lighter (standard for grayscale).
+    TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+
+    // Orientation of the image. ORIENTATION_TOPLEFT is standard (row 0 is the top).
+    // The read function reverses rows, so we'll ensure consistency here.
+    TIFFSetField(tif, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
+
+    // Determine and set bits per sample based on the ImageData's DataType.
+    uint16_t bitsPerSample = 0;
+    if (imageData.type == ImageData::DataType::UINT8) {
+        bitsPerSample = 8;
+    } else if (imageData.type == ImageData::DataType::UINT16) {
+        bitsPerSample = 16;
+    } else if (imageData.type == ImageData::DataType::UINT32) {
+        bitsPerSample = 32;
+    } else {
+        TIFFClose(tif);
+        throw std::runtime_error("Error: Unsupported ImageData type for writing. Only UINT8, UINT16, UINT32 are supported.");
+    }
+    TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, bitsPerSample);
+
+    // Sample format: specifies if data is unsigned int, signed int, or float.
+    // Your read function explicitly validates for UINT, so we set it here.
+    TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_UINT);
+
+    // Compression method. LZW is a good lossless compression option.
+    // Use COMPRESSION_NONE for no compression.
+    TIFFSetField(tif, TIFFTAG_COMPRESSION, COMPRESSION_LZW);
+
+    // Rows per strip: how many rows are grouped into a single strip of data.
+    // TIFFDefaultStripSize is a good way to let libtiff decide an optimal value.
+    TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, TIFFDefaultStripSize(tif, 0));
+
+    // Get the expected size of a single scanline in bytes. This is important for buffer handling.
+    tmsize_t scanlineSize = TIFFScanlineSize(tif);
+    if (scanlineSize == 0) {
+        TIFFClose(tif);
+        throw std::runtime_error("Error: Could not determine scanline size for writing.");
+    }
+
+    // --- Write pixel data scanline by scanline ---
+    try {
+        // Use std::visit or if-else with std::get to access the correct vector type
+        // from the std::variant.
+        if (imageData.type == ImageData::DataType::UINT8) {
+            // Get a reference to the uint8_t vector from the variant.
+            const auto& data = std::get<std::vector<uint8_t>>(imageData.pixelData);
+            for (uint32_t row = 0; row < imageData.height; ++row) {
+                // Your read function copies to `dest_row = height - 1 - row`.
+                // To maintain consistency and write the image correctly from your in-memory representation,
+                // we need to reverse this for writing. So, the data for 'row' will come from
+                // the 'height - 1 - row' in your pixelData vector.
+                size_t src_row_index = imageData.height - 1 - row;
+                const uint8_t* scanlineBuffer = data.data() + (src_row_index * imageData.width);
+
+                // TIFFWriteScanline writes a single scanline (row) of image data.
+                // The const_cast is necessary because TIFFWriteScanline expects a void*
+                // even though it doesn't modify the buffer for writing.
+                if (TIFFWriteScanline(tif, const_cast<void*>(static_cast<const void*>(scanlineBuffer)), row) < 0) {
+                    throw std::runtime_error("Error: Failed to write scanline " + std::to_string(row) + " for UINT8 data.");
+                }
+            }
+        } else if (imageData.type == ImageData::DataType::UINT16) {
+            const auto& data = std::get<std::vector<uint16_t>>(imageData.pixelData);
+            for (uint32_t row = 0; row < imageData.height; ++row) {
+                size_t src_row_index = imageData.height - 1 - row;
+                const uint16_t* scanlineBuffer = data.data() + (src_row_index * imageData.width);
+                if (TIFFWriteScanline(tif, const_cast<void*>(static_cast<const void*>(scanlineBuffer)), row) < 0) {
+                    throw std::runtime_error("Error: Failed to write scanline " + std::to_string(row) + " for UINT16 data.");
+                }
+            }
+        } else if (imageData.type == ImageData::DataType::UINT32) {
+            const auto& data = std::get<std::vector<uint32_t>>(imageData.pixelData);
+            for (uint32_t row = 0; row < imageData.height; ++row) {
+                size_t src_row_index = imageData.height - 1 - row;
+                const uint32_t* scanlineBuffer = data.data() + (src_row_index * imageData.width);
+                if (TIFFWriteScanline(tif, const_cast<void*>(static_cast<const void*>(scanlineBuffer)), row) < 0) {
+                    throw std::runtime_error("Error: Failed to write scanline " + std::to_string(row) + " for UINT32 data.");
+                }
+            }
+        }
+    } catch (const std::bad_variant_access& e) {
+        // This exception is thrown if std::get attempts to access a type not currently held by the variant.
+        // It indicates a mismatch between imageData.type and the actual content of imageData.pixelData.
+        TIFFClose(tif);
+        throw std::runtime_error("Error: Mismatch between ImageData::type and actual pixelData variant content: " + std::string(e.what()));
+    } catch (...) {
+        // Catch any other unexpected exceptions during the writing process.
+        TIFFClose(tif);
+        throw; // Re-throw the caught exception.
+    }
+
+    // --- Finalize and close the TIFF file ---
+    TIFFClose(tif);
+}
+
