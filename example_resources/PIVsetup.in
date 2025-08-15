@@ -14,9 +14,10 @@ IMAGEFILE_2 ./example_resources/piv_test_image_frame{}.tif
 IM2_FRAME_START 2
 IM2_FRAME_STEP 0
 
-N_PASS 2
-WINDOW_SIZE 32 16
-WINDOW_OVERLAP 0.5 0.5
+N_PASS 3
+//WINDOW_SIZE 32 16
+WINDOW_SIZE 64 64 32
+WINDOW_OVERLAP 0.5 0.5 0.5
 
 
 //OUTPUT_TEMPLATE ./example_resources/vec_{:03}.dat

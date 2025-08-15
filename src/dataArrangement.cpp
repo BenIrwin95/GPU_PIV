@@ -6,8 +6,9 @@ const std::string kernelSource_dataArrangement=R"KERN_END(
 
 __kernel void uniform_tiling(__global float2* input, int2 inputDim, int N, int2 strideDim,__global float2* output, int2 outputDim){
 
-int gid[2] = {get_group_id(0),get_group_id(1)};
-int lid[2] = {get_local_id(0),get_local_id(1)};
+int global_id[2] = {get_global_id(0), get_global_id(1)};
+int gid[2] = {floor((float)global_id[0]/N), floor((float)global_id[1]/N)};
+int lid[2] = {global_id[0] % N, global_id[1] % N};
 
 int idx = (gid[1]*strideDim.y + lid[1])*inputDim.x + (gid[0]*strideDim.x + lid[0]);
 
@@ -16,13 +17,15 @@ int idx_output = (gid[1]*N + lid[1])*outputDim.x + (gid[0]*N + lid[0]);
 output[idx_output] = input[idx];
 
 
+
 }
 
 
 __kernel void warped_tiling(__global float2* input, __global float* offsets_x, __global float* offsets_y, int2 inputDim, int N, int2 strideDim,__global float2* output, int2 outputDim){
 
-int gid[2] = {get_group_id(0),get_group_id(1)};
-int lid[2] = {get_local_id(0),get_local_id(1)};
+int global_id[2] = {get_global_id(0), get_global_id(1)};
+int gid[2] = {floor((float)global_id[0]/N), floor((float)global_id[1]/N)};
+int lid[2] = {global_id[0] % N, global_id[1] % N};
 
 int idx_og = (gid[1]*strideDim.y + lid[1])*inputDim.x + (gid[0]*strideDim.x + lid[0]);
 
@@ -47,10 +50,11 @@ if(idx.x < 0 || idx.x >= inputDim.x || idx.y < 0 || idx.y >= inputDim.y){
 
 
 __kernel void detrend_window(__global float2* input, int2 inputDim, int N, __local float* rowSum){
-
-    int gid[2] = {get_group_id(0),get_group_id(1)};
-    int lid[2] = {get_local_id(0), get_local_id(1)}; //should be N x N
-
+    
+   
+    int global_id[2] = {get_global_id(0), get_global_id(1)};
+    int gid[2] = {floor((float)global_id[0]/N), floor((float)global_id[1]/N)};
+    int lid[2] = {global_id[0] % N, global_id[1] % N};
 
     int idx_corner = (gid[1]*N)*inputDim.x + (gid[0]*N);
 
@@ -101,7 +105,8 @@ cl_int uniformly_tile_data(cl::Buffer& input, cl_int2 inputDim, cl::Buffer& outp
     try {err = env.kernel_uniform_tiling.setArg(5, sizeof(cl_int2), &outputDim);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 5" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
 
 
-    cl::NDRange local(windowSize, windowSize);
+    //cl::NDRange local(windowSize, windowSize);
+    cl::NDRange local(8, 8);
     cl::NDRange global(arrSize.s[0]*windowSize, arrSize.s[1]*windowSize);
     try{
         env.queue.enqueueNDRangeKernel(env.kernel_uniform_tiling, cl::NullRange, global, local);
@@ -137,7 +142,8 @@ cl_int warped_tile_data(cl::Buffer& input, cl_int2 inputDim, cl::Buffer& output,
     try {err = env.kernel_warped_tiling.setArg(7, sizeof(cl_int2), &outputDim);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
 
 
-    cl::NDRange local(windowSize, windowSize);
+    //cl::NDRange local(windowSize, windowSize);
+    cl::NDRange local(8, 8);
     cl::NDRange global(arrSize.s[0]*windowSize, arrSize.s[1]*windowSize);
     try{
         env.queue.enqueueNDRangeKernel(env.kernel_warped_tiling, cl::NullRange, global, local);
@@ -154,7 +160,8 @@ cl_int warped_tile_data(cl::Buffer& input, cl_int2 inputDim, cl::Buffer& output,
 cl_int detrend_windows(cl::Buffer& input, cl_int2 inputDim, int windowSize, cl_int2 arrSize, OpenCL_env& env){
     cl_int err = CL_SUCCESS;
 
-    cl::NDRange local(windowSize, windowSize);
+    //cl::NDRange local(windowSize, windowSize);
+    cl::NDRange local(8, 8);
     cl::NDRange global(arrSize.s[0]*windowSize, arrSize.s[1]*windowSize);
 
     try {err = env.kernel_detrend_window.setArg(0, input);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
