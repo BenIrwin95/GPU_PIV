@@ -21,6 +21,7 @@ __kernel void complex_multiply_conjugate_norm(__global float2* A,
         c.x = a.x*b.x - a.y*b.y;
         c.y = a.x*b.y + a.y*b.x;
         float mag_sq = c.x * c.x + c.y * c.y;
+        /*
         if(mag_sq>0.0f){
           float inv_mag = rsqrt(mag_sq);
           c.x = c.x * inv_mag;
@@ -28,7 +29,7 @@ __kernel void complex_multiply_conjugate_norm(__global float2* A,
         } else {
           c.x=0.0f;
           c.y=0.0f;
-        }
+        }*/
 
 
         A[gid] = c;
@@ -58,6 +59,7 @@ __kernel void findMaxCorr(__global float2* input,
         colMax[lid]=0.0;
         for(int i=0;i<windowSize;i++){
             float val = input[startPoint + i*inputDim.x + lid].x;
+            // FFT based correlation finding has an inherent bias towards 0 and thus a correction needs applying
             if(val > colMax[lid]){
                 colMax[lid] = val;
                 best_i_by_row[lid] = i;

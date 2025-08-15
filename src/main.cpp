@@ -98,7 +98,7 @@ int main(int argc, char* argv[]) {
     debug_message("Initialising memory structures", 0, DEBUG_LVL);
 
     // load first image to find its size and data type
-    ImageData im_ref = readTiffToAppropriateIntegerVector(fmt::format(fmt::runtime(im1_filepath_template), 1));
+    ImageData im_ref = readTiffToAppropriateIntegerVector(fmt::format(fmt::runtime(im1_filepath_template), im1_frame_start));
     //std::cout << fmt::format(fmt::runtime(im1_filepath_template),1) << " loaded. Size: " << im1.width << "x" << im1.height << std::endl;
     //std::vector<cl_int2> imageShifts(im_ref.width*im_ref.height);
 

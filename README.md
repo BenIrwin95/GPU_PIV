@@ -58,3 +58,4 @@ cmake --build . --config Release
 
 ## Work in Progress and known bugs
 * Image pre-processing
+* Something doesn't seem to work quite right for uint16 tiff images

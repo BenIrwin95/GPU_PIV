@@ -20,12 +20,12 @@ stencil = [0.25, 0.25, 0.25, 0.25, 0.25;
 window_halfsize = floor(size(stencil,1)/2);
 
 % 2560x1600
-N_image = 2023;
-I1 = zeros(N_image);
+%N_image = 2023;
+I1 = zeros(1600,2560);
 for i=1:length(x_part1)
     try
         i_image = floor(interp1(linspace(-1,1, size(I1,1)), 1:size(I1,1), x_part1(i)));
-        j_image = floor(interp1(linspace(-1,1, size(I1,2)), 1:size(I1,1), y_part1(i)));
+        j_image = floor(interp1(linspace(-1,1, size(I1,2)), 1:size(I1,2), y_part1(i)));
         i_range=i_image-window_halfsize:i_image+window_halfsize;
         j_range=j_image-window_halfsize:j_image+window_halfsize;
         I1(i_range,j_range) = I1(i_range,j_range) + stencil;
@@ -35,7 +35,7 @@ end
 
 I2 = zeros(size(I1));
 shiftVal_x = -8;
-shiftVal_y = 0;
+shiftVal_y = -5;
 for i=1:size(I2,1)
   for j=1:size(I2,2)
     idx_i = i+shiftVal_y;
