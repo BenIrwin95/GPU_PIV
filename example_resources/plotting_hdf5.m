@@ -15,8 +15,8 @@ U = h5read(filename, sprintf("%s/U/frame%03d", passGroup, N_frames-1))';
 V = h5read(filename, sprintf("%s/V/frame%03d", passGroup, N_frames-1))';
 
 
-skp=5;
-scaler=5;
+skp=3;
+scaler=2.5;
 figure
 set(gcf,'Position',[50,50,800,800])
 im = imread("cam1_im_000_A_adjusted.tiff"); colormap gray;

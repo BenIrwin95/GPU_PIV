@@ -29,7 +29,7 @@ __kernel void convert_uint16_to_float2(__global const ushort* input_data, __glob
 
     if(gid<N){
         // Read the uint8_t data
-        uchar val_uchar = input_data[gid];
+        ushort val_uchar = input_data[gid];
 
         // Convert to a float
         float val_float = (float)val_uchar;
@@ -47,7 +47,7 @@ __kernel void convert_uint32_to_float2(__global const uint* input_data, __global
 
     if(gid<N){
         // Read the uint8_t data
-        uchar val_uchar = input_data[gid];
+        uint val_uchar = input_data[gid];
 
         // Convert to a float
         float val_float = (float)val_uchar;
@@ -244,9 +244,9 @@ cl_int uploadImage_and_convert_to_complex(ImageData& im, OpenCL_env& env, cl::Bu
     try{err = env.queue.enqueueWriteBuffer( buffer, CL_TRUE, 0, im.sizeBytes, host_ptr);} catch (cl::Error& e) {std::cerr << "Error uploading to GPU" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
 
     cl_int N = im.width*im.height;
-    try {err = env.kernel_convert_im_to_complex.setArg(0, buffer);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 0" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
-    try {err = env.kernel_convert_im_to_complex.setArg(1, buffer_complex);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 1" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
-    try {err = env.kernel_convert_im_to_complex.setArg(2, sizeof(cl_int),&N);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 2" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = correct_kernel.setArg(0, buffer);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 0" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = correct_kernel.setArg(1, buffer_complex);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 1" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = correct_kernel.setArg(2, sizeof(cl_int),&N);} catch (cl::Error& e) {std::cerr << "Error setting kernel argument 2" << std::endl;CHECK_CL_ERROR(e.err());return e.err();}
 
 
     size_t N_local = 64;
@@ -254,7 +254,7 @@ cl_int uploadImage_and_convert_to_complex(ImageData& im, OpenCL_env& env, cl::Bu
     size_t N_groups = ceil((float)N/N_local);
     cl::NDRange global(N_groups*N_local);
     try{
-        env.queue.enqueueNDRangeKernel(env.kernel_convert_im_to_complex, cl::NullRange, global, local);
+        env.queue.enqueueNDRangeKernel(correct_kernel, cl::NullRange, global, local);
     } catch (cl::Error& e) {
         std::cerr << "Error Enqueuing kernel_convert_im_to_complex" << std::endl;
         CHECK_CL_ERROR(e.err());
