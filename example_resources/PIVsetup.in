@@ -2,23 +2,16 @@ DEBUG 2
 
 N_FRAMES 1
 
-//IMAGEFILE_1 ./example_resources/im{}.tiff
-//IMAGEFILE_1 ./example_resources/piv_test_image_frame{}.tif
-//IMAGEFILE_1 ./example_resources/RecordedImage_GO-5100M-USB__{:03}.tif
 IMAGEFILE_1 ./example_resources/cam1_im_{:03}_A.tiff
 IM1_FRAME_START 0
 IM1_FRAME_STEP 1
 
-//IMAGEFILE_2 ./example_resources/im{}.tiff
-//IMAGEFILE_2 ./example_resources/piv_test_image_frame{}.tif
-//IMAGEFILE_2 ./example_resources/RecordedImage_GO-5100M-USB__{:03}.tif
 IMAGEFILE_2 ./example_resources/cam1_im_{:03}_B.tiff
 IM2_FRAME_START 0
 IM2_FRAME_STEP 1
 
 N_PASS 2
 WINDOW_SIZE 32 16
-//WINDOW_SIZE 64 32 16
 WINDOW_OVERLAP 0.5 0.5
 
 
