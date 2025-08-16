@@ -15,19 +15,26 @@ int main(){
     OpenCL_env env;
     if(env.status != CL_SUCCESS){CHECK_CL_ERROR(env.status);return 1;}
 
-    ImageData im = readTiffToAppropriateIntegerVector("./example_resources/cam1_im_000_A.tiff");
+
 
 
     const std::string inputFile = "./example_resources/IM_FILTER_setup.in";
 
     // extract non-optional inputs
     int N_filters;
+    std::string input_im_file;
+    std::string output_im_file;
     try{
         N_filters = findIntegerAfterKeyword(inputFile, "N_FILTER");
+        input_im_file = findRestOfLineAfterKeyword(inputFile,"IMAGE_SRC");
+        output_im_file = findRestOfLineAfterKeyword(inputFile,"IMAGE_DST");
     } catch (const std::runtime_error& e) {
         std::cerr << e.what() << std::endl;
         return 1;
     }
+
+
+    ImageData im = readTiffToAppropriateIntegerVector(input_im_file);
 
     // create filters
     std::vector<ImFilter> filter_list(N_filters);
@@ -63,7 +70,7 @@ int main(){
 
 
 
-    writeTiffFromAppropriateIntegerVector(im, "./example_resources/test.tiff");
+    writeTiffFromAppropriateIntegerVector(im, output_im_file);
 
     return 0;
 }
