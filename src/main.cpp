@@ -78,6 +78,18 @@ int main(int argc, char* argv[]) {
     }
 
 
+
+    // check if image filtering has been activated
+    int activate_im_filters = 0;
+    try{
+        activate_im_filters = findIntegerAfterKeyword(inputFile, "ACTIVATE_IM_FILTER");
+    } catch (const std::runtime_error& e) {
+        std::cout << "No image filters detected" << std::endl;
+    }
+
+
+
+
     //-------------------------------------------------------------------
     //-------------------------------------------------------------------
     //---------------------initialise OpenCL-----------------------------
@@ -87,6 +99,17 @@ int main(int argc, char* argv[]) {
     cl_int err;
     OpenCL_env env;
     if(env.status != CL_SUCCESS){CHECK_CL_ERROR(env.status);return 1;}
+
+
+
+
+
+    std::vector<ImFilter> filter_list;
+    int N_filters;
+    if(activate_im_filters == 1){
+        try{N_filters = findIntegerAfterKeyword(inputFile, "N_FILTER");} catch (const std::runtime_error& e) {std::cerr << e.what() << std::endl;return 1;}
+        try{filter_list = create_filter_list(N_filters, inputFile, env);} catch (const std::runtime_error& e) {std::cerr << e.what() << std::endl;return 1;}
+    }
 
 
 
@@ -152,6 +175,11 @@ int main(int argc, char* argv[]) {
     //-------------------------------------------------------------------
 
     for(int frame=0;frame<N_frames;frame++){
+        //-------------------------------------------------------------------
+        //-------------------------------------------------------------------
+        //---------------------load images and filter------------------------
+        //-------------------------------------------------------------------
+        //-------------------------------------------------------------------
         auto frameStart = std::chrono::high_resolution_clock::now();
         //debug_message(fmt::format("Frame {}",frame), 0, DEBUG_LVL);
         debug_message_with_timestamp(fmt::format("Frame {}",frame), 0, DEBUG_LVL, frameStart);
@@ -164,6 +192,13 @@ int main(int argc, char* argv[]) {
         err = uploadImage_and_convert_to_complex(im2, env, env.im2, env.im2_complex);
         if(err != CL_SUCCESS){CHECK_CL_ERROR(err);std::cout << fmt::format(fmt::runtime(im2_filepath_template), im2_frame_start + frame*im2_frame_step) <<" could not be uploaded" << std::endl;break;}
 
+
+
+        debug_message_with_timestamp("Filtering images", 1, DEBUG_LVL, frameStart);
+        if(activate_im_filters == 1){
+            err = process_image_with_filterList(env.im1_complex, im1, filter_list, env); if(err != CL_SUCCESS){break;}
+            err = process_image_with_filterList(env.im2_complex, im2, filter_list, env); if(err != CL_SUCCESS){break;}
+        }
 
         //-------------------------------------------------------------------
         //-------------------------------------------------------------------

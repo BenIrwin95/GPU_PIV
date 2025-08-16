@@ -2,7 +2,7 @@ import h5py
 import matplotlib.pyplot as plt
 
 
-f = h5py.File('output.h5', 'r')
+f = h5py.File('../output.h5', 'r')
 last_pass_idx = f.attrs["N_pass"]-1
 last_frame_idx = f.attrs["N_frames"]-1
 group = "Pass_" + str(last_pass_idx)
