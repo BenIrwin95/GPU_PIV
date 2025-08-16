@@ -58,7 +58,11 @@ struct ImageData {
     size_t sizeBytes; //total size of image in bytes
 };
 
-
+struct ImFilter {
+    std::string name;
+    cl::Kernel kernel;
+    std::vector<float> float_args;
+};
 
 
 

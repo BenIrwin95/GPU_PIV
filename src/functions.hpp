@@ -12,6 +12,7 @@ int findIntegerAfterKeyword(const std::string& filename, const std::string& keyw
 std::string findRestOfLineAfterKeyword(const std::string& filename, const std::string& keyword);
 std::vector<int> findIntegersAfterKeyword(const std::string& filename, const std::string& keyword);
 std::vector<float> findFloatsAfterKeyword(const std::string& filename, const std::string& keyword);
+std::vector<std::string> separate_words(std::string inputString);
 
 //--------------------------------------------------------------------------------
 //-------------------------------OpenCL_utilities---------------------------------
@@ -78,6 +79,9 @@ void add_data_to_hdf5_output(int frame, int pass, H5::H5File& file, PIVdata& piv
 //--------------------------------------------------------------------------------
 //-------------------------------image_processing---------------------------------
 //--------------------------------------------------------------------------------
+
+ImFilter createFilter(std::vector<std::string>& words, OpenCL_env& env);
+cl_int runFilter(cl::Buffer& im_buffer_complex, ImageData& im, ImFilter& filter, OpenCL_env& env);
 
 cl_int manual_range_scaling(cl::Buffer& im_buffer, ImageData& im, float minVal, float maxVal, OpenCL_env& env);
 

@@ -21,6 +21,41 @@ __kernel void manual_range_scaling(__global float2* im, int N, float minVal, flo
 )";
 
 
+
+
+
+ImFilter createFilter(std::vector<std::string>& words, OpenCL_env& env){
+    ImFilter filter;
+    filter.name = words[0];
+    if(filter.name == "MANUAL_STRETCH"){
+        filter.kernel = env.kernel_manual_range_scaling;
+        filter.float_args.resize(2);
+        filter.float_args[0] = std::stof(words[1]);
+        filter.float_args[1] = std::stof(words[2]);
+    } else {
+        throw std::invalid_argument("Unknown filter type: " + filter.name);
+    }
+    return filter;
+}
+
+
+cl_int runFilter(cl::Buffer& im_buffer_complex, ImageData& im, ImFilter& filter, OpenCL_env& env){
+    cl_int err=CL_SUCCESS;
+    if(filter.name == "MANUAL_STRETCH"){
+        err = manual_range_scaling(im_buffer_complex, im, filter.float_args[0], filter.float_args[1], env);
+    } else{
+        std::cout << "Unknown filter" << std::endl;
+        return CL_INVALID_VALUE;
+    }
+
+
+    return err;
+}
+
+
+
+
+
 cl_int manual_range_scaling(cl::Buffer& im_buffer_complex, ImageData& im, float minVal, float maxVal, OpenCL_env& env){
     // min and max val will be on scale of 0 to 1 to represent whatever the datatypes min and max vals are
     cl_int err =CL_SUCCESS;

@@ -126,3 +126,17 @@ std::vector<float> findFloatsAfterKeyword(const std::string& filename, const std
     file.close();
     throw std::runtime_error("Error: Keyword '" + keyword + "' not found in file '" + filename + "'");
 }
+
+
+
+
+std::vector<std::string> separate_words(std::string inputString){
+    std::vector<std::string> words;
+    std::istringstream iss(inputString);
+    std::string word;
+
+    while (iss >> word) {
+        words.push_back(word);
+    }
+    return words;
+}
