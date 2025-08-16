@@ -25,6 +25,7 @@ set(SRCS_main
     src/determineCorrelation.cpp
     src/vectorValidation.cpp
     src/outputFunctions.cpp
+    src/image_processing.cpp
 )
 
 set(SRCS_im_filter
@@ -39,6 +40,7 @@ set(SRCS_im_filter
     src/determineCorrelation.cpp
     src/vectorValidation.cpp
     src/outputFunctions.cpp
+    src/image_processing.cpp
 )
 
 # Define the executable target

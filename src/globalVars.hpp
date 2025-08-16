@@ -11,6 +11,7 @@ extern const std::string kernelSource_complexMaths;
 extern const std::string kernelSource_determineCorrelation;
 extern const std::string kernelSource_vectorValidation;
 extern const std::string kernelSource_bicubic_interpolation;
+extern const std::string kernelSource_image_processing;
 
 
 
@@ -83,6 +84,11 @@ struct OpenCL_env {
     cl::Kernel kernel_findMaxCorr;
     cl::Kernel kernel_identifyInvalidVectors;
     cl::Kernel kernel_correctInvalidVectors;
+    // image processing kernels
+    cl::Kernel kernel_convert_float2_to_uint8;
+    cl::Kernel kernel_convert_float2_to_uint16;
+    cl::Kernel kernel_convert_float2_to_uint32;
+    cl::Kernel kernel_manual_range_scaling;
 
     // memory structures for working on GPU
     cl::Buffer im1;
@@ -159,6 +165,7 @@ struct OpenCL_env {
             sources.push_back({kernelSource_determineCorrelation.c_str(), kernelSource_determineCorrelation.length()});
             sources.push_back({kernelSource_vectorValidation.c_str(), kernelSource_vectorValidation.length()});
             sources.push_back({kernelSource_bicubic_interpolation.c_str(), kernelSource_bicubic_interpolation.length()});
+            sources.push_back({kernelSource_image_processing.c_str(), kernelSource_image_processing.length()});
             program = cl::Program(context, sources);
 
         } catch (cl::Error& e) {
@@ -199,6 +206,10 @@ struct OpenCL_env {
             kernel_findMaxCorr = cl::Kernel(program, "findMaxCorr");
             kernel_identifyInvalidVectors = cl::Kernel(program, "identifyInvalidVectors");
             kernel_correctInvalidVectors = cl::Kernel(program, "correctInvalidVectors");
+            kernel_manual_range_scaling = cl::Kernel(program, "manual_range_scaling");
+            kernel_convert_float2_to_uint8 = cl::Kernel(program, "convert_float2_to_uint8");
+            kernel_convert_float2_to_uint16 = cl::Kernel(program, "convert_float2_to_uint16");
+            kernel_convert_float2_to_uint32 = cl::Kernel(program, "convert_float2_to_uint32");
             // Kernel creation was successful
         } catch (cl::Error& e) {
             std::cerr << "Error creating kernels: " << e.what() << " (" << e.err() << ")" << std::endl;

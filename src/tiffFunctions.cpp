@@ -24,6 +24,17 @@ __kernel void convert_to_float2(__global const uchar* input_data, __global float
 }
 
 
+__kernel void convert_float2_to_uint8(__global const float2* input_data, __global uchar* output_data, int N) {
+    int gid = get_global_id(0);
+
+    if(gid<N){
+        output_data[gid] = (uchar)input_data[gid].x;
+    }
+}
+
+
+
+
 __kernel void convert_uint16_to_float2(__global const ushort* input_data, __global float2* output_data, int N) {
     int gid = get_global_id(0);
 
@@ -42,6 +53,16 @@ __kernel void convert_uint16_to_float2(__global const ushort* input_data, __glob
     }
 }
 
+__kernel void convert_float2_to_uint16(__global const float2* input_data, __global ushort* output_data, int N) {
+    int gid = get_global_id(0);
+
+    if(gid<N){
+        output_data[gid] = (ushort)input_data[gid].x;
+    }
+}
+
+
+
 __kernel void convert_uint32_to_float2(__global const uint* input_data, __global float2* output_data, int N) {
     int gid = get_global_id(0);
 
@@ -57,6 +78,14 @@ __kernel void convert_uint32_to_float2(__global const uint* input_data, __global
 
         // Write the result to the output array
         output_data[gid] = result_vec;
+    }
+}
+
+__kernel void convert_float2_to_uint32(__global const float2* input_data, __global uint* output_data, int N) {
+    int gid = get_global_id(0);
+
+    if(gid<N){
+        output_data[gid] = (uint)input_data[gid].x;
     }
 }
 
@@ -264,6 +293,74 @@ cl_int uploadImage_and_convert_to_complex(ImageData& im, OpenCL_env& env, cl::Bu
 
     return err;
 }
+
+
+
+
+
+
+
+cl_int retrieveImageFromBuffer(cl::Buffer& im_buffer_complex, cl::Buffer& im_buffer, ImageData& im, OpenCL_env& env){
+    cl_int err = CL_SUCCESS;
+
+    // determine image type and select appropriate function to convert image from its float2 form to an integer
+    cl::Kernel correct_kernel;
+    switch (im.type) {
+        case ImageData::DataType::UINT8:
+            correct_kernel = env.kernel_convert_float2_to_uint8;
+            break;
+        case ImageData::DataType::UINT16:
+            correct_kernel = env.kernel_convert_float2_to_uint16;
+            break;
+        case ImageData::DataType::UINT32:
+            correct_kernel = env.kernel_convert_float2_to_uint32;
+            break;
+        case ImageData::DataType::UNKNOWN:
+        default:
+            std::cout << "Data type is unknown or unsupported." << std::endl;
+            return CL_INVALID_IMAGE_FORMAT_DESCRIPTOR;
+    }
+    cl_int N = im.width*im.height;
+    try {err = correct_kernel.setArg(0, im_buffer_complex);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = correct_kernel.setArg(1, im_buffer);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = correct_kernel.setArg(2, sizeof(cl_int),&N);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+
+
+
+    size_t N_local = 64;
+    cl::NDRange local(N_local);
+    size_t N_groups = ceil((float)N/N_local);
+    cl::NDRange global(N_groups*N_local);
+
+    try{
+        env.queue.enqueueNDRangeKernel(correct_kernel, cl::NullRange, global, local);
+    } catch (cl::Error& e) {
+        std::cerr << "Error Enqueuing kernel_convert_im_to_complex" << std::endl;
+        CHECK_CL_ERROR(e.err());
+        return e.err();
+    }
+    env.queue.finish();
+
+    // due to the unknown type of the data, this extra step is needed
+    void* host_ptr = std::visit([](auto& vec) -> void* {return vec.data();}, im.pixelData);
+    if (!host_ptr) {
+        // Handle error: host pointer is null
+        return CL_INVALID_HOST_PTR; // A custom or predefined error code
+    }
+
+    // after converting, pull image from GPU into the provided ImageData object
+    env.queue.enqueueReadBuffer(im_buffer, CL_TRUE, 0, im.sizeBytes, host_ptr);
+
+
+
+    return err;
+}
+
+
+
+
+
+
 
 
 

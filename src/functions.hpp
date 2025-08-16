@@ -28,6 +28,7 @@ cl_int inititialise_OpenCL_buffers(OpenCL_env& env, PIVdata& piv_data, ImageData
 ImageData readTiffToAppropriateIntegerVector(const std::string& filePath);
 cl_int uploadImage_and_convert_to_complex(ImageData& im, OpenCL_env& env, cl::Buffer& buffer, cl::Buffer& buffer_complex);
 void writeTiffFromAppropriateIntegerVector(const ImageData& imageData, const std::string& filePath);
+cl_int retrieveImageFromBuffer(cl::Buffer& im_buffer_complex, cl::Buffer& im_buffer, ImageData& im, OpenCL_env& env);
 
 
 //--------------------------------------------------------------------------------
@@ -72,5 +73,12 @@ cl_int validateVectors(int pass, PIVdata& piv_data, OpenCL_env& env);
 void add_pass_data_to_file(int pass, std::ofstream& outputFile, PIVdata& piv_data);
 H5::H5File initialise_output_hdf5(const std::string filename, PIVdata& piv_data);
 void add_data_to_hdf5_output(int frame, int pass, H5::H5File& file, PIVdata& piv_data);
+
+
+//--------------------------------------------------------------------------------
+//-------------------------------image_processing---------------------------------
+//--------------------------------------------------------------------------------
+
+cl_int manual_range_scaling(cl::Buffer& im_buffer, ImageData& im, float minVal, float maxVal, OpenCL_env& env);
 
 #endif
