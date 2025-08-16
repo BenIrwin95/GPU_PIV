@@ -81,6 +81,8 @@ void add_data_to_hdf5_output(int frame, int pass, H5::H5File& file, PIVdata& piv
 //--------------------------------------------------------------------------------
 
 ImFilter createFilter(std::vector<std::string>& words, OpenCL_env& env);
+std::vector<ImFilter> create_filter_list(int N_filter, std::string inputFile, OpenCL_env& env);
+cl_int process_image_with_filterList(cl::Buffer& im_buffer_complex, ImageData& im, std::vector<ImFilter>& filter_list, OpenCL_env& env);
 cl_int runFilter(cl::Buffer& im_buffer_complex, ImageData& im, ImFilter& filter, OpenCL_env& env);
 
 cl_int manual_range_scaling(cl::Buffer& im_buffer, ImageData& im, float minVal, float maxVal, OpenCL_env& env);

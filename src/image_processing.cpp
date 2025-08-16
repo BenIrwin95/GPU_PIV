@@ -38,6 +38,22 @@ ImFilter createFilter(std::vector<std::string>& words, OpenCL_env& env){
     return filter;
 }
 
+std::vector<ImFilter> create_filter_list(int N_filters, std::string inputFile, OpenCL_env& env){
+    std::vector<ImFilter> filter_list(N_filters);
+    for(int i=0;i<N_filters;i++){
+        std::string search_term = fmt::format("FILTER_{}", i);
+        try{
+            std::string line_string = findRestOfLineAfterKeyword(inputFile, search_term);
+            std::vector<std::string> line_words = separate_words(line_string);
+            filter_list[i] = createFilter(line_words, env);
+        } catch (const std::runtime_error& e) {
+            throw std::invalid_argument("Problem loading " + search_term);
+        }
+    }
+    return filter_list;
+}
+
+
 
 cl_int runFilter(cl::Buffer& im_buffer_complex, ImageData& im, ImFilter& filter, OpenCL_env& env){
     cl_int err=CL_SUCCESS;
@@ -53,6 +69,14 @@ cl_int runFilter(cl::Buffer& im_buffer_complex, ImageData& im, ImFilter& filter,
 }
 
 
+
+cl_int process_image_with_filterList(cl::Buffer& im_buffer_complex, ImageData& im, std::vector<ImFilter>& filter_list, OpenCL_env& env){
+    cl_int err=CL_SUCCESS;
+    for(int i=0;i<filter_list.size();i++){
+        err = runFilter(im_buffer_complex, im, filter_list[i], env); if(err != CL_SUCCESS){return err;}
+    }
+    return err;
+}
 
 
 
