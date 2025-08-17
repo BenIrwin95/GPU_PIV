@@ -87,5 +87,6 @@ cl_int runFilter(cl::Buffer& im_buffer_complex, ImageData& im, ImFilter& filter,
 
 cl_int manual_range_scaling(cl::Buffer& im_buffer, ImageData& im, float minVal, float maxVal, OpenCL_env& env);
 cl_int image_mean_filter(cl::Buffer& im_buffer_complex, ImageData& im, int radius, OpenCL_env& env);
+cl_int image_mean_filter_subtraction(cl::Buffer& im_buffer_complex, ImageData& im, int radius, OpenCL_env& env);
 
 #endif
