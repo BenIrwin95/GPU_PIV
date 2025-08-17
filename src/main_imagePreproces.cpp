@@ -164,9 +164,9 @@ int main(){
     env.im1_complex = cl::Buffer(env.context, CL_MEM_READ_WRITE, im.width*im.height*sizeof(cl_float2), NULL, &err); if(err != CL_SUCCESS){return 1;}
     err = uploadImage_and_convert_to_complex(im, env, env.im1, env.im1_complex); if(err != CL_SUCCESS){return 1;}
 
-
+    std::cout << "Applying filters...";
     err = process_image_with_filterList(env.im1_complex, im, filter_list, env); if(err != CL_SUCCESS){return 1;}
-
+    std::cout << "done" <<std::endl;
 
     err =  retrieveImageFromBuffer(env.im1_complex, env.im1, im, env); if(err != CL_SUCCESS){return 1;}
 

@@ -62,6 +62,7 @@ struct ImFilter {
     std::string name;
     cl::Kernel kernel;
     std::vector<float> float_args;
+    std::vector<int> int_args;
 };
 
 
@@ -93,6 +94,7 @@ struct OpenCL_env {
     cl::Kernel kernel_convert_float2_to_uint16;
     cl::Kernel kernel_convert_float2_to_uint32;
     cl::Kernel kernel_manual_range_scaling;
+    cl::Kernel kernel_mean_filter;
 
     // memory structures for working on GPU
     cl::Buffer im1;
@@ -210,10 +212,11 @@ struct OpenCL_env {
             kernel_findMaxCorr = cl::Kernel(program, "findMaxCorr");
             kernel_identifyInvalidVectors = cl::Kernel(program, "identifyInvalidVectors");
             kernel_correctInvalidVectors = cl::Kernel(program, "correctInvalidVectors");
-            kernel_manual_range_scaling = cl::Kernel(program, "manual_range_scaling");
             kernel_convert_float2_to_uint8 = cl::Kernel(program, "convert_float2_to_uint8");
             kernel_convert_float2_to_uint16 = cl::Kernel(program, "convert_float2_to_uint16");
             kernel_convert_float2_to_uint32 = cl::Kernel(program, "convert_float2_to_uint32");
+            kernel_manual_range_scaling = cl::Kernel(program, "manual_range_scaling");
+            kernel_mean_filter = cl::Kernel(program, "mean_filter");
             // Kernel creation was successful
         } catch (cl::Error& e) {
             std::cerr << "Error creating kernels: " << e.what() << " (" << e.err() << ")" << std::endl;
