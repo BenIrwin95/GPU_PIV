@@ -107,51 +107,56 @@ int main(){
         std::cerr << e.what() << std::endl;
         return 1;
     }
+    int image_statistics = 0;
+    try{
+        image_statistics = findIntegerAfterKeyword(inputFile, "DISPLAY_IMAGE_STATISTICS");
+    } catch (const std::runtime_error& e) {}
 
 
     ImageData im = readTiffToAppropriateIntegerVector(input_im_file);
 
+    if(image_statistics==1){
+        // calculate and display some statistics about the image
+        // Use std::visit to call findMean on the active type in the variant
+        double mean = std::visit([](const auto& data) {return findMean(data);}, im.pixelData);
+        double median = std::visit([](const auto& data) {return findMedian(data);}, im.pixelData);
+        double std_dev = std::visit([](const auto& data) {return findStdDev(data);}, im.pixelData);
 
-    // calculate and display some statistics about the image
-    // Use std::visit to call findMean on the active type in the variant
-    double mean = std::visit([](const auto& data) {return findMean(data);}, im.pixelData);
-    double median = std::visit([](const auto& data) {return findMedian(data);}, im.pixelData);
-    double std_dev = std::visit([](const auto& data) {return findStdDev(data);}, im.pixelData);
-
-    int percentile_1 = std::visit([](auto& data) {return findPercentileValue(data, 0.01);}, im.pixelData);
-    int percentile_99 = std::visit([](auto& data) {return findPercentileValue(data, 0.99);}, im.pixelData);
+        int percentile_1 = std::visit([](auto& data) {return findPercentileValue(data, 0.01);}, im.pixelData);
+        int percentile_99 = std::visit([](auto& data) {return findPercentileValue(data, 0.99);}, im.pixelData);
 
 
 
-    // find the max value for this datatype
-    double absolute_max;
-    switch (im.type) {
-        case ImageData::DataType::UINT8:
-            absolute_max = (double) std::numeric_limits<uint8_t>::max();
-            break;
-        case ImageData::DataType::UINT16:
-            absolute_max = (double) std::numeric_limits<uint16_t>::max();
-            break;
-        case ImageData::DataType::UINT32:
-            absolute_max = (double) std::numeric_limits<uint32_t>::max();
-            break;
-        case ImageData::DataType::UNKNOWN:
-        default:
-            std::cout << "Image data type is unknown or unsupported." << std::endl;
-            return 1;
+        // find the max value for this datatype
+        double absolute_max;
+        switch (im.type) {
+            case ImageData::DataType::UINT8:
+                absolute_max = (double) std::numeric_limits<uint8_t>::max();
+                break;
+            case ImageData::DataType::UINT16:
+                absolute_max = (double) std::numeric_limits<uint16_t>::max();
+                break;
+            case ImageData::DataType::UINT32:
+                absolute_max = (double) std::numeric_limits<uint32_t>::max();
+                break;
+            case ImageData::DataType::UNKNOWN:
+            default:
+                std::cout << "Image data type is unknown or unsupported." << std::endl;
+                return 1;
+        }
+        mean = 100 * mean/absolute_max;
+        median = 100 * median/absolute_max;
+        std_dev = 100 * std_dev/absolute_max;
+        double percentile_1_double = 100 * (double)percentile_1/absolute_max;
+        double percentile_99_double = 100 * (double)percentile_99/absolute_max;
+
+
+        std::cout << "Mean pixel intensity: " << mean << "%" << std::endl;
+        std::cout << "Median pixel intensity: " << median << "%" << std::endl;
+        std::cout << "StdDev pixel intensity: " << std_dev << "%" << std::endl;
+        std::cout << "Threshold of 1\% of all pixel intensities: " << percentile_1_double << "%" << std::endl;
+        std::cout << "Threshold of 99\% of all pixel intensities: " << percentile_99_double << "%" << std::endl;
     }
-    mean = 100 * mean/absolute_max;
-    median = 100 * median/absolute_max;
-    std_dev = 100 * std_dev/absolute_max;
-    double percentile_1_double = 100 * (double)percentile_1/absolute_max;
-    double percentile_99_double = 100 * (double)percentile_99/absolute_max;
-
-
-    std::cout << "Mean pixel intensity: " << mean << "%" << std::endl;
-    std::cout << "Median pixel intensity: " << median << "%" << std::endl;
-    std::cout << "StdDev pixel intensity: " << std_dev << "%" << std::endl;
-    std::cout << "Threshold of 1\% of all pixel intensities: " << percentile_1_double << "%" << std::endl;
-    std::cout << "Threshold of 99\% of all pixel intensities: " << percentile_99_double << "%" << std::endl;
 
 
     // create filters

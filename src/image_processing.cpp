@@ -38,7 +38,9 @@ __kernel void mean_filter(__global float2* im, int2 imDim, int radius){
                 }
             }
         }
-        im[i_ref*imDim.x+j_ref].x = val/valCount;
+        if(valCount != 0){
+            im[i_ref*imDim.x+j_ref].x = val/valCount;
+        }
     }
 }
 
@@ -60,9 +62,11 @@ __kernel void mean_filter_subtraction(__global float2* im, int2 imDim, int radiu
                 }
             }
         }
-        float temp = im[i_ref*imDim.x+j_ref].x - val/valCount;
-        if(temp < 0){temp=0;}
-        im[i_ref*imDim.x+j_ref].x = temp;
+        if(valCount != 0){
+            float temp = im[i_ref*imDim.x+j_ref].x - val/valCount;
+            if(temp < 0){temp=0;}
+            im[i_ref*imDim.x+j_ref].x = temp;
+        }
     }
 }
 
@@ -90,10 +94,38 @@ __kernel void gaussian_filter(__global float2* im, int2 imDim, int radius, float
                 }
             }
         }
-        im[i_ref*imDim.x+j_ref].x = val/sumVal;
+        if(sumVal != 0.0f){
+            im[i_ref*imDim.x+j_ref].x = val/sumVal;
+        }
     }
 }
 
+__kernel void gaussian_filter_subtraction(__global float2* im, int2 imDim, int radius, float stdDev){
+    const int gid = get_global_id(0);
+    const int N = imDim.x*imDim.y;
+    if(gid < N){
+        int i_ref = (int) floor((float) gid/imDim.x);
+        int j_ref = gid % imDim.x;
+        float val = 0.0f;
+        float sumVal = 0.0f;
+        for(int i=-radius;i<radius;i++){
+            for(int j=-radius;j<radius;j++){
+                int i_ = i_ref + i;
+                int j_ = j_ref + j;
+                if(i_ > 0 && i_ < imDim.y && j_ > 0 && j_ < imDim.x){
+                    float G = (1.0f/(2.0f * M_PI_F*stdDev*stdDev)) * exp( -(i*i + j*j)/(2.0f*stdDev*stdDev) );
+                    val += im[i_*imDim.x + j_].x * G;
+                    sumVal += G;
+                }
+            }
+        }
+        if(sumVal != 0.0f){
+            float temp = im[i_ref*imDim.x+j_ref].x - val/sumVal;
+            if(temp<0){temp=0;}
+            im[i_ref*imDim.x+j_ref].x = temp;
+        }
+    }
+}
 
 
 )";
@@ -116,6 +148,11 @@ ImFilter createFilter(std::vector<std::string>& words, OpenCL_env& env){
         filter.int_args.resize(1);
         filter.int_args[0] = std::stoi(words[1]);
     } else if (filter.name == "GAUSS_FILTER") {
+        filter.int_args.resize(1);
+        filter.float_args.resize(1);
+        filter.int_args[0] = std::stoi(words[1]);
+        filter.float_args[0] = std::stoi(words[1]);
+    } else if (filter.name == "GAUSS_FILTER_SUBTRACTION") {
         filter.int_args.resize(1);
         filter.float_args.resize(1);
         filter.int_args[0] = std::stoi(words[1]);
@@ -153,6 +190,8 @@ cl_int runFilter(cl::Buffer& im_buffer_complex, ImageData& im, ImFilter& filter,
         err = image_mean_filter_subtraction(im_buffer_complex, im, filter.int_args[0], env);
     } else if(filter.name == "GAUSS_FILTER"){
         err = image_gauss_filter(im_buffer_complex, im, filter.int_args[0], filter.float_args[0], env);
+    } else if(filter.name == "GAUSS_FILTER_SUBTRACTION"){
+        err = image_gauss_filter_subtraction(im_buffer_complex, im, filter.int_args[0], filter.float_args[0], env);
     } else{
         std::cout << "Unknown filter" << std::endl;
         return CL_INVALID_VALUE;
@@ -314,6 +353,37 @@ cl_int image_gauss_filter(cl::Buffer& im_buffer_complex, ImageData& im, int radi
         env.queue.enqueueNDRangeKernel(env.kernel_gauss_filter, cl::NullRange, global, local);
     } catch (cl::Error& e) {
         std::cerr << "Error Enqueuing kernel_gauss_filter" << std::endl;
+        CHECK_CL_ERROR(e.err());
+        return e.err();
+    }
+    env.queue.finish();
+
+    return err;
+}
+
+
+
+
+cl_int image_gauss_filter_subtraction(cl::Buffer& im_buffer_complex, ImageData& im, int radius, float stdDev, OpenCL_env& env){
+    cl_int err=CL_SUCCESS;
+
+    cl_int2 imDim;
+    imDim.s[0] = im.width;imDim.s[1] = im.height;
+    int N = im.width*im.height;
+    try {err = env.kernel_gauss_filter_subtraction.setArg(0, im_buffer_complex);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_gauss_filter_subtraction.setArg(1, sizeof(cl_int2),&imDim);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_gauss_filter_subtraction.setArg(2, sizeof(int),&radius);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+    try {err = env.kernel_gauss_filter_subtraction.setArg(3, sizeof(float),&stdDev);} catch (cl::Error& e) {CHECK_CL_ERROR(e.err());return e.err();}
+
+
+    size_t N_local = 64;
+    cl::NDRange local(N_local);
+    size_t N_groups = ceil((float)N/N_local);
+    cl::NDRange global(N_groups*N_local);
+    try{
+        env.queue.enqueueNDRangeKernel(env.kernel_gauss_filter_subtraction, cl::NullRange, global, local);
+    } catch (cl::Error& e) {
+        std::cerr << "Error Enqueuing kernel_gauss_filter_subtraction" << std::endl;
         CHECK_CL_ERROR(e.err());
         return e.err();
     }
