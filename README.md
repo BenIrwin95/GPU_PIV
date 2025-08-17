@@ -13,6 +13,29 @@ The output of this can be found at: `./example_resources/output.h5`.
 Note that on Windows you will need to replace `/` with `\` and use the `.exe` suffix: `GPU_PIV.exe`.
 
 
+
+# Table of Contents
+* [Quickstart](#quickstart)
+* [Building the project](#building-the-project)
+    * [Building on Windows](#building-on-windows)
+    * [Building on Mac (untested)](#building-on-mac-untested)
+* [Usage: Creating an input file](#usage-creating-an-input-file)
+    * [Debug Level](#debug-level)
+    * [Image settings](#image-settings)
+    * [PIV settings](#piv-settings)
+    * [Output settings](#output-settings)
+* [Image Pre-processor Usage](#image-pre-processor-usage)
+    * [Image loading/saving](#image-loadingsaving)
+    * [Image statistics](#image-statistics)
+    * [Setting number of filters](#setting-number-of-filters)
+    * [Manual range scaling](#manual-range-scaling)
+    * [Mean filtering](#mean-filtering)
+    * [Gaussian filtering](#gaussian-filtering)
+* [Work in Progress and known bugs](#work-in-progress-and-known-bugs)
+
+
+
+
 ## Building the project
 The program uses the following libraries that will need to be installed to build successfully
 * OpenCL
