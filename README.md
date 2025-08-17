@@ -21,7 +21,7 @@ The program uses the following libraries that will need to be installed to build
 * fmt
 * HDF5
 
-To then build the project,if on Linux, you can run the INSTALL.sh bash script
+To then build the project, if on Linux, you can run the INSTALL.sh bash script
 
 ### Building on Windows
 For installing the necessary libraries on windows I would recommend using vcpkg.
@@ -133,5 +133,69 @@ The second method saves a single HDF5 file that contains the outputs of all fram
 The HDF5 method is notably faster than the ASCII method, but the ASCII format has been left for those for who prefer it.
 
 
+
+## Image Pre-processor Usage
+
+GPU_PIV is able to apply a select few types of filters to the images loaded into it. These filters can be tested in standalone upon some test image through the IM_FILTER executable. Much like GPU_PIV, it takes a textfile as an input with specifies what image it loads and how it filters. With the exception of `IMAGE_SRC` and `IMAGE_DST`, all commands relating to the filter setup can also be inputted into the GPU_PIV input file. GPU_PIV will only use these filters however if `ACTIVATE_IM_FILTER` is set to 1 in the inputfile.
+
+The following sections will go through the input commands that the IM_FILTER inputfile can take and what they mean. An example file can be found at `./example_resources/IM_FILTER_setup.in`.
+
+
+### Image loading/saving
+```
+IMAGE_SRC ./example_resources/RecordedImage_GO-5100M-USB__000.tif
+IMAGE_DST ./example_resources/test.tiff
+```
+`IMAGE_SRC` and `IMAGE_DST` set the image that should be loaded and under what name it should be saved respectively.
+
+
+### Image statistics
+```
+DISPLAY_IMAGE_STATISTICS 0
+```
+
+For setting the arguments to some filters it can be useful to know some statistics about the pixel intensities in an image. By setting `DISPLAY_IMAGE_STATISTICS` to 1, these statistics will be calculated and displayed. If not required, set to zero.
+
+### Setting number of filters
+```
+N_FILTER 2
+FILTER_0 ...
+```
+
+To allow for multiple filters to be applied to an image in a particular order, the number of applied filters must be specified. The program will then iterate starting from 0 looking for lines that start with `FILTER_{}`, which then set the type of filter being applied and its arguments.
+
+
+### Manual range scaling
+```
+//FILTER_0 MANUAL_STRETCH min max
+FILTER_0 MANUAL_STRETCH 0.0 0.1
+```
+
+Rescales the pixel intensities between the minimum and maximum values for the image's datatype based on two float thresholds: min and max. Everything equal or below min will be set to zero, while everything equal and above max will be set the image datatype's maximum value. All inbetween values will be linearly interpolated.
+
+min and max should be floats in the range (0,1). In the example input shown above, all values above 10% of the datatype's maximum value will be scaled up to the datatype's maximum value.
+
+
+### Mean filtering
+```
+//FILTER_0 MEAN_FILTER radius
+FILTER_0 MEAN_FILTER 3
+//FILTER_1 MEAN_FILTER_SUBTRACTION radius
+FILTER_1 MEAN_FILTER_SUBTRACTION 3
+```
+
+Using `MEAN_FILTER` the intensity of every pixel will be set equal to the mean of a (2*radius+1, 2*radius+1) square window centered on the pixel. Conversely, `MEAN_FILTER_SUBTRACTION` will subtract this mean filtered value from the original pixel intensity.
+
+
+### Gaussian filtering
+```
+//FILTER_0 GAUSS_FILTER radius stdDev
+FILTER_0 GAUSS_FILTER 3 1
+//FILTER_1 GAUSS_FILTER_SUBTRACTION radius stdDev
+FILTER_1 GAUSS_FILTER_SUBTRACTION 3 1
+```
+
+Very similar to mean filtering, but the pixel intensities within the window are weighted by a gaussian distribution with a standard deviation stdDev.
+
 ## Work in Progress and known bugs
-* Image pre-processing
+* Image masking
