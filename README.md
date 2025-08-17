@@ -207,7 +207,7 @@ FILTER_0 MEAN_FILTER 3
 FILTER_1 MEAN_FILTER_SUBTRACTION 3
 ```
 
-Using `MEAN_FILTER` the intensity of every pixel will be set equal to the mean of a (2*radius+1, 2*radius+1) square window centered on the pixel. Conversely, `MEAN_FILTER_SUBTRACTION` will subtract this mean filtered value from the original pixel intensity.
+Using `MEAN_FILTER` the intensity of every pixel will be set equal to the mean of a (2 * radius + 1, 2 * radius + 1) square window centered on the pixel. Conversely, `MEAN_FILTER_SUBTRACTION` will subtract this mean filtered value from the original pixel intensity.
 
 
 ### Gaussian filtering
