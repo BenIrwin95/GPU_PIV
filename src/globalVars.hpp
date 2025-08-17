@@ -96,6 +96,7 @@ struct OpenCL_env {
     cl::Kernel kernel_manual_range_scaling;
     cl::Kernel kernel_mean_filter;
     cl::Kernel kernel_mean_filter_subtraction;
+    cl::Kernel kernel_gauss_filter;
 
     // memory structures for working on GPU
     cl::Buffer im1;
@@ -219,6 +220,7 @@ struct OpenCL_env {
             kernel_manual_range_scaling = cl::Kernel(program, "manual_range_scaling");
             kernel_mean_filter = cl::Kernel(program, "mean_filter");
             kernel_mean_filter_subtraction = cl::Kernel(program, "mean_filter_subtraction");
+            kernel_gauss_filter = cl::Kernel(program, "gaussian_filter");
             // Kernel creation was successful
         } catch (cl::Error& e) {
             std::cerr << "Error creating kernels: " << e.what() << " (" << e.err() << ")" << std::endl;
