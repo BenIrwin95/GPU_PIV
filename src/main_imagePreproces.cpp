@@ -53,6 +53,35 @@ double findStdDev(const std::vector<T>& data) {
 }
 
 
+template <typename T>
+int findPercentileValue(std::vector<T> data, double percentile) {
+    if (data.empty()) {
+        return 0; // Or handle error appropriately
+    }
+
+    // Sort the vector in ascending order
+    std::sort(data.begin(), data.end());
+
+
+
+    // Calculate the index for the given percentile
+    double index_float = percentile * (data.size() - 1);
+
+    // Linearly interpolate between the two nearest integer indices
+    int index_low = static_cast<int>(floor(index_float));
+    int index_high = static_cast<int>(ceil(index_float));
+
+    if (index_low == index_high) {
+        return data[index_low];
+    }
+
+    double value_low = static_cast<double>(data[index_low]);
+    double value_high = static_cast<double>(data[index_high]);
+
+    return static_cast<int>(value_low + (value_high - value_low) * (index_float - index_low));
+}
+
+
 
 
 int main(){
@@ -89,6 +118,10 @@ int main(){
     double median = std::visit([](const auto& data) {return findMedian(data);}, im.pixelData);
     double std_dev = std::visit([](const auto& data) {return findStdDev(data);}, im.pixelData);
 
+    int percentile_1 = std::visit([](auto& data) {return findPercentileValue(data, 0.01);}, im.pixelData);
+    int percentile_99 = std::visit([](auto& data) {return findPercentileValue(data, 0.99);}, im.pixelData);
+
+
 
     // find the max value for this datatype
     double absolute_max;
@@ -110,11 +143,15 @@ int main(){
     mean = 100 * mean/absolute_max;
     median = 100 * median/absolute_max;
     std_dev = 100 * std_dev/absolute_max;
+    double percentile_1_double = 100 * (double)percentile_1/absolute_max;
+    double percentile_99_double = 100 * (double)percentile_99/absolute_max;
 
 
     std::cout << "Mean pixel intensity: " << mean << "%" << std::endl;
     std::cout << "Median pixel intensity: " << median << "%" << std::endl;
     std::cout << "StdDev pixel intensity: " << std_dev << "%" << std::endl;
+    std::cout << "Threshold of 1\% of all pixel intensities: " << percentile_1_double << "%" << std::endl;
+    std::cout << "Threshold of 99\% of all pixel intensities: " << percentile_99_double << "%" << std::endl;
 
 
     // create filters
