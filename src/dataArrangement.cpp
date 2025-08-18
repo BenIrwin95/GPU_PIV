@@ -10,11 +10,24 @@ int global_id[2] = {get_global_id(0), get_global_id(1)};
 int gid[2] = {floor((float)global_id[0]/N), floor((float)global_id[1]/N)};
 int lid[2] = {global_id[0] % N, global_id[1] % N};
 
-int idx = (gid[1]*strideDim.y + lid[1])*inputDim.x + (gid[0]*strideDim.x + lid[0]);
+
 
 int idx_output = (gid[1]*N + lid[1])*outputDim.x + (gid[0]*N + lid[0]);
 
-output[idx_output] = input[idx];
+//int idx = (gid[1]*strideDim.y + lid[1])*inputDim.x + (gid[0]*strideDim.x + lid[0]);
+int2 idx;
+idx.x = gid[0]*strideDim.x + lid[0] - N/2;
+idx.y = gid[1]*strideDim.y + lid[1] - N/2;
+
+if(idx.x > 0 && idx.x < inputDim.x && idx.y > 0 && idx.y < inputDim.y ){
+    output[idx_output] = input[idx.y * inputDim.x + idx.x];
+} else {
+    output[idx_output].x=0.0f;
+    output[idx_output].y=0.0f;
+}
+
+
+
 
 
 
@@ -30,8 +43,8 @@ int lid[2] = {global_id[0] % N, global_id[1] % N};
 int idx_og = (gid[1]*strideDim.y + lid[1])*inputDim.x + (gid[0]*strideDim.x + lid[0]);
 
 int2 idx;
-idx.x = gid[0]*strideDim.x + lid[0];
-idx.y = gid[1]*strideDim.y + lid[1];
+idx.x = gid[0]*strideDim.x + lid[0] - N/2;
+idx.y = gid[1]*strideDim.y + lid[1] - N/2;
 
 idx.x += (int)offsets_x[idx_og];
 idx.y += (int)offsets_y[idx_og];
@@ -40,7 +53,8 @@ idx.y += (int)offsets_y[idx_og];
 
 int idx_output = (gid[1]*N + lid[1])*outputDim.x + (gid[0]*N + lid[0]);
 if(idx.x < 0 || idx.x >= inputDim.x || idx.y < 0 || idx.y >= inputDim.y){
-    output[idx_output]=0.0f;
+    output[idx_output].x=0.0f;
+    output[idx_output].y=0.0f;
 } else {
     output[idx_output] = input[idx.y*inputDim.x + idx.x];
 }

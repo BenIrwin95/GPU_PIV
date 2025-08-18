@@ -137,8 +137,8 @@ int main(int argc, char* argv[]) {
         float overlap = piv_data.window_overlaps[k];
         int window_shift = (1.0-overlap)*windowSize;
         piv_data.window_shifts[k] = window_shift;
-        piv_data.arrSize[k].s[0] = std::floor((im_ref.width-windowSize)/window_shift);
-        piv_data.arrSize[k].s[1] = std::floor((im_ref.height-windowSize)/window_shift);
+        piv_data.arrSize[k].s[0] = std::floor((im_ref.width)/window_shift);
+        piv_data.arrSize[k].s[1] = std::floor((im_ref.height)/window_shift);
         uint32_t arrLen = piv_data.arrSize[k].s[0] * piv_data.arrSize[k].s[1];
         piv_data.X[k].resize(arrLen);piv_data.x[k].resize(piv_data.arrSize[k].s[0]);
         piv_data.Y[k].resize(arrLen);piv_data.y[k].resize(piv_data.arrSize[k].s[1]);
@@ -148,8 +148,8 @@ int main(int argc, char* argv[]) {
         for(int i=0;i<piv_data.arrSize[k].s[1];i++){
             for(int j=0;j<piv_data.arrSize[k].s[0];j++){
                 int idx = i*piv_data.arrSize[k].s[0] + j;
-                piv_data.X[k][idx] = (float)windowSize/2 + j*window_shift;
-                piv_data.Y[k][idx] = (float)windowSize/2 + i*window_shift;
+                piv_data.X[k][idx] = (float)j*window_shift;
+                piv_data.Y[k][idx] = (float)i*window_shift;
             }
         }
         for(int j=0;j<piv_data.arrSize[k].s[0];j++){
